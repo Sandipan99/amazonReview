@@ -2,6 +2,8 @@
 
 # use preprocess.py for pre-processing tasks..
 
+# improve on this
+
 import torch
 import torch.nn as nn
 from torch import optim
@@ -87,4 +89,4 @@ if __name__=='__main__':
     input_size = len(w2i)
     output_size = 1
     encoder = Encoder(input_size, hidden_size, output_size)
-    train(encoder)                
+    train(encoder)
