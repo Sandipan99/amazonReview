@@ -36,7 +36,7 @@ def findTrainExample(train_senetences, train_labels):
 
 
 
-def train(encoder, iter=5000, learning_rate=0.001, train_senetences, train_labels, w2i):
+def train(encoder, train_senetences, train_labels, w2i, iter=5000, learning_rate=0.001):
 
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
 
@@ -89,4 +89,4 @@ if __name__=='__main__':
     input_size = len(w2i)
     output_size = 1
     encoder = Encoder(input_size, hidden_size, output_size)
-    train(encoder)
+    train(encoder, train_senetences, train_labels, w2i,)
