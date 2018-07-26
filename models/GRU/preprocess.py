@@ -4,6 +4,7 @@
 
 import string
 import numpy as np
+import torch
 
 def readFromFile(fname,vocabulary,w2i,w_c,translator):
 
@@ -63,3 +64,11 @@ def testTrainSplit(sentences_m, sentences_f, sf=0.8):
             test_labels.append(0)
 
     return train_senetences, train_labels, test_sentences, test_labels
+
+
+if __name__=="__main__":
+
+    vocabulary,w2i,sentences_m,sentences_f = obtainW2i("../Data/sample_male","../Data/sample_female")
+    train_senetences, train_labels, test_sentences, test_labels = testTrainSplit(sentences_m,sentences_f)
+    print(test_sentences)
+    print(test_labels)
