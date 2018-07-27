@@ -6,7 +6,7 @@ import string
 import numpy as np
 import torch
 
-def readFromFile(fname,vocabulary,w2i,w_c,translator):
+def readFromFile(fname,vocabulary,translator):
 
     sentences = []
     with open(fname) as fs:
@@ -15,12 +15,9 @@ def readFromFile(fname,vocabulary,w2i,w_c,translator):
             words = line.strip().lower().split()
             sentences.append(words)
             for w in words:
-                if w not in vocabulary:
-                    vocabulary.append(w)
-                    w2i[w] = w_c
-                    w_c+=1
+                vocabulary.append(w)
 
-    return vocabulary,w2i,w_c,sentences
+    return vocabulary,sentences
 
 def obtainW2i(fname_m,fname_f):
 
@@ -28,8 +25,13 @@ def obtainW2i(fname_m,fname_f):
     vocabulary = []
     w2i = {}
     w_c = 0
-    vocabulary,w2i,w_c,sentences_m = readFromFile(fname_m,vocabulary,w2i,w_c,translator)
-    vocabulary,w2i,w_c,sentences_f = readFromFile(fname_f,vocabulary,w2i,w_c,translator)
+    vocabulary,sentences_m = readFromFile(fname_m,vocabulary,translator)
+    vocabulary = list(set(vocabulary))
+    vocabulary,sentences_f = readFromFile(fname_f,vocabulary,translator)
+    vocabulary = list(set(vocabulary))
+
+    for i in range(len(vocabulary)):
+        w2i[vocabulary[i]] = i
 
     return vocabulary,w2i,sentences_m,sentences_f
 
