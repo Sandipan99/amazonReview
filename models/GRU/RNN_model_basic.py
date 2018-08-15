@@ -22,11 +22,8 @@ class Encoder(nn.Module):
         self.sigmoid = nn.LogSigmoid()
 
     def forward(self, input, hidden):
-        print('input shape:',input.size())
         embedded = self.embedding(input)
-        print('embedding shape:',embedded.size())
         output = embedded.view(1,1,-1) # view is same as reshape
-        print('embedding view shape:',embedded.size())
         output, hidden = self.gru(output, hidden)
         output = self.sigmoid(self.out(output[0]))
         return output, hidden
@@ -76,19 +73,20 @@ def findBatch(train_sentences, train_labels, batch_size):
         batch_sentences.append(train_sentences[ind])
         batch_labels.append(train_labels[ind])
         batch_size-=1
-    return train_sentences,train_labels
+    return batch_sentences,batch_labels
 
 
-def batch_train(encoder, train_senetences, train_labels, batch_size, w2i, epochs=5, learning_rate=0.001):
+def batch_train(encoder, train_sentences, train_labels, batch_size, w2i, epochs=5, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
 
     for i in range(1000):
         batch_sentences, batch_labels = findBatch(train_sentences, train_labels, batch_size)
+        print('found batch')
         loss = 0
         encoder_hidden = encoder.initHidden()
-        for j in len(batch_sentences):
-            sentence = batch_sentences[i]
-            label = batch_labels[i]
+        for j in range(len(batch_sentences)):
+            sentence = batch_sentences[j]
+            label = batch_labels[j]
             sentence_tensor = pp.encodeSentence(sentence,w2i)
             label_tensor = torch.tensor(label,dtype=torch.float32).view(1,1)
 
@@ -97,7 +95,9 @@ def batch_train(encoder, train_senetences, train_labels, batch_size, w2i, epochs
                 output, encoder_hidden = encoder(sentence_tensor[ei],encoder_hidden)
 
             loss += torch.abs(output - label_tensor)
+            #print(loss)
         loss = loss/len(batch_sentences)
+        print(loss)
 
         optimizer.zero_grad()
         loss.backward(retain_graph=True)
@@ -135,6 +135,6 @@ if __name__=='__main__':
     input_size = len(w2i)
     output_size = 1
     encoder = Encoder(input_size, hidden_size, output_size)
-    train(encoder, train_senetences, train_labels, w2i,)
-    accuracy = evaluate(encoder,test_sentences, test_labels,w2i)
-    print(accuracy)
+    batch_train(encoder, train_senetences, train_labels, 3, w2i)
+    #accuracy = evaluate(encoder,test_sentences, test_labels,w2i)
+    #print(accuracy)
