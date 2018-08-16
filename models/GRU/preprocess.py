@@ -7,15 +7,20 @@ import numpy as np
 import torch
 
 def readFromFile(fname,vocabulary,translator):
-
+    count = 0
     sentences = []
     with open(fname) as fs:
         for line in fs:
+            count+=1
             line = line.translate(translator)
             words = line.strip().lower().split()
             sentences.append(words)
             for w in words:
                 vocabulary.append(w)
+            if count==50:
+                vocabulary = list(set(vocabulary))
+            if count==1000:
+                print("read: ",count)
 
     return vocabulary,sentences
 
@@ -30,9 +35,12 @@ def obtainW2i(fname_m,fname_f):
     vocabulary,sentences_f = readFromFile(fname_f,vocabulary,translator)
     vocabulary = list(set(vocabulary))
 
+    print("vocabulary size: ",len(vocabulary))
+
     for i in range(len(vocabulary)):
         w2i[vocabulary[i]] = i
-
+    
+    print("w2i size: ",len(w2i))
     return vocabulary,w2i,sentences_m,sentences_f
 
 def encodeSentence(sentence,w2i):

@@ -135,13 +135,16 @@ def evaluate(encoder, test_sentences, test_labels, w2i):
 if __name__=='__main__':
 
     # file name for male reviews and female reviews
-    vocabulary,w2i,sentences_m,sentences_f = pp.obtainW2i("../Data/sample_male","../Data/sample_female")
+    vocabulary,w2i,sentences_m,sentences_f = pp.obtainW2i("/media/backup/Data/Amazon/sample_male","/media/backup/Data/Amazon/sample_female")
+    print(len(vocabulary),len(w2i))
+    
     train_senetences, train_labels, test_sentences, test_labels = pp.testTrainSplit(sentences_m, sentences_f)
-    hidden_size = 20
+    hidden_size = 100
     input_size = len(w2i)
     output_size = 1
     encoder = Encoder(input_size, hidden_size, output_size)
     encoder = encoder.to(device)
-    batch_train(encoder, train_senetences, train_labels, 3, w2i)
+    batch_train(encoder, train_senetences, train_labels, 50, w2i)
     #accuracy = evaluate(encoder,test_sentences, test_labels,w2i)
     #print(accuracy)
+    
