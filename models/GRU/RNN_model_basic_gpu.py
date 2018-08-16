@@ -86,14 +86,15 @@ def batch_train(encoder, train_sentences, train_labels, batch_size, w2i, epochs=
         batch_sentences, batch_labels = findBatch(train_sentences, train_labels, batch_size)
         print('found batch')
         loss = 0
-        encoder_hidden = encoder.initHidden()
+        #encoder_hidden = encoder.initHidden()
         for j in range(len(batch_sentences)):
             sentence = batch_sentences[j]
             label = batch_labels[j]
             sentence_tensor = pp.encodeSentence(sentence,w2i)
             label_tensor = torch.tensor(label,dtype=torch.float32).view(1,1)
-
-            input_length = sentence_tensor.size(0)
+            encoder_hidden = encoder.initHidden()
+            encoder_hidden = encoder_hidden.to(device)
+            #input_length = sentence_tensor.size(0)
             #for ei in range(input_length):
             sentence_tensor = sentence_tensor.to(device)
             label_tensor = label_tensor.to(device)
