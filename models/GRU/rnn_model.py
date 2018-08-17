@@ -252,7 +252,7 @@ if __name__=='__main__':
     
     j=1
     for epoch in range(5):
-        batch_train(encoder, train_senetences, train_labels,50, w2i)
+        batch_train(encoder, train_sentences, train_labels,50, w2i)
         result = evaluate(encoder,validation_sentences, validation_labels,w2i)
         print("Result after epoch {} : {}".format(j,result))
         j+=1
