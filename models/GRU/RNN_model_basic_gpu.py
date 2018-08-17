@@ -21,14 +21,19 @@ class Encoder(nn.Module):
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
-        self.sigmoid = nn.LogSigmoid()
+        self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, input, hidden):
         for ei in range(input.size(0)):
             embedded = self.embedding(input[ei])
             output = embedded.view(1,1,-1) # view is same as reshape
             output, hidden = self.gru(output, hidden)
-            output = self.sigmoid(self.out(output[0]))
+            #print(output)
+            output = self.relu(self.out(output[0]))
+            #print(output)
+            output = self.sigmoid(output)
+            #print(output)
         return output
 
     def initHidden(self):
@@ -130,14 +135,14 @@ def evaluate(encoder, test_sentences, test_labels, w2i):
         label_tensor = label_tensor.to(device)
         output = encoder(sentence_tensor,encoder_hidden)
         #print("output from encoder: ",output)
-        output = torch.abs(output)
+        #output = torch.abs(output)
         output = torch.round(output)
         #print("output: ",output)
         #print("label: ",label_tensor)
         if torch.equal(output,label_tensor):
             accuracy+=1
         
-        print ("accuracy: ",accuracy)
+        #print ("accuracy: ",accuracy)
 
     return accuracy/len(test_sentences)
 
