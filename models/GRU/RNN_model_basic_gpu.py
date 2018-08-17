@@ -21,7 +21,7 @@ class Encoder(nn.Module):
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
-        self.relu = nn.ReLU()
+        #self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, input, hidden):
@@ -30,9 +30,9 @@ class Encoder(nn.Module):
             output = embedded.view(1,1,-1) # view is same as reshape
             output, hidden = self.gru(output, hidden)
             #print(output)
-            output = self.relu(self.out(output[0]))
+            output = self.sigmoid(self.out(output[0]))
             #print(output)
-            output = self.sigmoid(output)
+            #output = self.sigmoid(output)
             #print(output)
         return output
 
