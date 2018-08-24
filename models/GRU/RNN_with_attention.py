@@ -36,7 +36,9 @@ class Encoder(nn.Module):
         return output
 
     def initHidden(self):
-         return (torch.zeros(1, 1, self.hidden_size),torch.zeros(1, 1, self.hidden_size))
+        cell_state,hidden_state = torch.zeros(1, 1, self.hidden_size),torch.zeros(1, 1, self.hidden_size)
+        cell_state,hidden_state = cell_state.to(device),hidden_state.to(device)
+        return (cell_state,hidden_state)
 
 def findTrainExample(train_senetences, train_labels):
     ind = random.randint(0,len(train_senetences)-1)
@@ -87,7 +89,7 @@ def findBatch(train_sentences, train_labels, batch_size):
 def batch_train(encoder, train_sentences, train_labels, batch_size, w2i, epochs=1, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
 
-    for i in range(1):
+    for i in range(10):
         #print("encoder weight: ",encoder.out.weight)
         batch_sentences, batch_labels = findBatch(train_sentences, train_labels, batch_size)
         #print('found batch')
@@ -103,12 +105,12 @@ def batch_train(encoder, train_sentences, train_labels, batch_size, w2i, epochs=
             #encoder_hidden = encoder_hidden.to(device)
             #input_length = sentence_tensor.size(0)
             #for ei in range(input_length):
-            #sentence_tensor = sentence_tensor.to(device)
-            #label_tensor = label_tensor.to(device)
+            sentence_tensor = sentence_tensor.to(device)
+            label_tensor = label_tensor.to(device)
             output = encoder(sentence_tensor,encoder_hidden)
 
             loss += torch.mul((output - label_tensor),(output - label_tensor))
-            print(loss)
+            #print(loss)
         loss = loss/len(batch_sentences)
         print(loss)
 
@@ -131,8 +133,8 @@ def evaluate(encoder, test_sentences, test_labels, w2i):
         #encoder_hidden = encoder_hidden.to(device)
         #input_length = sentence_tensor.size(0)
         #for ei in range(input_length):
-        #sentence_tensor = sentence_tensor.to(device)
-        #label_tensor = label_tensor.to(device)
+        sentence_tensor = sentence_tensor.to(device)
+        label_tensor = label_tensor.to(device)
         output = encoder(sentence_tensor,encoder_hidden)
         #print("output from encoder: ",output)
         #output = torch.abs(output)
@@ -158,8 +160,8 @@ if __name__=='__main__':
     input_size = len(w2i)
     output_size = 1
     encoder = Encoder(input_size, hidden_size, output_size)
-    #encoder = encoder.to(device)
-    batch_train(encoder, train_sentences, train_labels, 1, w2i)
+    encoder = encoder.to(device)
+    batch_train(encoder, train_sentences, train_labels, 3, w2i)
     print("train_complete............")
-    #accuracy = evaluate(encoder,test_sentences, test_labels,w2i)
-    #print(accuracy)
+    accuracy = evaluate(encoder,test_sentences, test_labels,w2i)
+    print(accuracy)
