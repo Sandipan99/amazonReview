@@ -40,6 +40,7 @@ class EncoderLocalAttention(nn.Module):
         cell_state,hidden_state = cell_state.to(device),hidden_state.to(device)
         return (cell_state,hidden_state)
 
+
 def findTrainExample(train_senetences, train_labels):
     ind = random.randint(0,len(train_senetences)-1)
     return train_senetences[ind], train_labels[ind]

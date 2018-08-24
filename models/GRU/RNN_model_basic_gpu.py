@@ -15,11 +15,12 @@ import numpy as np
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Encoder(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size):
+    def __init__(self, input_size, hidden_size, output_size,layers):
         super(Encoder, self).__init__()
         self.hidden_size = hidden_size
+        self.layers = layers
         self.embedding = nn.Embedding(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
+        self.gru = nn.GRU(hidden_size, hidden_size, num_layers=self.layers)
         self.out = nn.Linear(hidden_size, output_size)
         #self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -37,7 +38,7 @@ class Encoder(nn.Module):
         return output
 
     def initHidden(self):
-         return torch.zeros(1, 1, self.hidden_size)
+         return torch.zeros(self.layers, 1, self.hidden_size)
 
 def findTrainExample(train_senetences, train_labels):
     ind = random.randint(0,len(train_senetences)-1)
@@ -85,10 +86,10 @@ def findBatch(train_sentences, train_labels, batch_size):
     return batch_sentences,batch_labels
 
 
-def batch_train(encoder, train_sentences, train_labels, batch_size, w2i, epochs=5, learning_rate=0.001):
+def batch_train(encoder, train_sentences, train_labels, batch_size, w2i, epochs=1, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
 
-    for i in range(1000):
+    for i in range(10):
         #print("encoder weight: ",encoder.out.weight)
         batch_sentences, batch_labels = findBatch(train_sentences, train_labels, batch_size)
         #print('found batch')
@@ -141,7 +142,7 @@ def evaluate(encoder, test_sentences, test_labels, w2i):
         #print("label: ",label_tensor)
         if torch.equal(output,label_tensor):
             accuracy+=1
-        
+
         #print ("accuracy: ",accuracy)
 
     return accuracy/len(test_sentences)
@@ -149,18 +150,18 @@ def evaluate(encoder, test_sentences, test_labels, w2i):
 if __name__=='__main__':
 
     # file name for male reviews and female reviews
-    vocabulary,w2i,sentences_m,sentences_f = pp.obtainW2i("/media/backup/Data/Amazon/sample_male","/media/backup/Data/Amazon/sample_female")
+    vocabulary,w2i,sentences_m,sentences_f = pp.obtainW2i("../Data/sample_male","../Data/sample_female")
     print(len(vocabulary),len(w2i))
-    
+
     train_sentences, train_labels, test_sentences, test_labels = pp.testTrainSplit(sentences_m, sentences_f)
     print("train set: ",len(train_sentences),"test set: ",len(test_sentences))
     hidden_size = 100
     input_size = len(w2i)
     output_size = 1
-    encoder = Encoder(input_size, hidden_size, output_size)
+    layers = 2
+    encoder = Encoder(input_size, hidden_size, output_size, layers)
     encoder = encoder.to(device)
     batch_train(encoder, train_sentences, train_labels, 50, w2i)
     print("train_complete............")
     accuracy = evaluate(encoder,test_sentences, test_labels,w2i)
     print(accuracy)
-    
