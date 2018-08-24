@@ -38,7 +38,39 @@ class Encoder(nn.Module):
         return output
 
     def initHidden(self):
-         return torch.zeros(self.layers, 1, self.hidden_size)
+         return torch.zeros(self.layers, 1, self.hidden_size).to(device)
+
+
+class EncoderLSTM(nn.Module):
+    def __init__(self, input_size, hidden_size, output_size,layers):
+        super(EncoderLSTM, self).__init__()
+        self.hidden_size = hidden_size
+        self.layers = layers
+        self.embedding = nn.Embedding(input_size, hidden_size)
+        self.gru = nn.LSTM(hidden_size, hidden_size, num_layers=self.layers)
+        self.out = nn.Linear(hidden_size, output_size)
+        #self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
+
+    def forward(self, input, hidden):
+        for ei in range(input.size(0)):
+            embedded = self.embedding(input[ei])
+            output = embedded.view(1,1,-1) # view is same as reshape
+            output, hidden = self.gru(output, hidden)
+            #print(output)
+            output = self.sigmoid(self.out(output[0]))
+            #print(output)
+            #output = self.sigmoid(output)
+            #print(output)
+        return output
+
+    def initHidden(self):
+        cell_state,hidden_state = torch.zeros(self.layers, 1, self.hidden_size),torch.zeros(self.layers, 1, self.hidden_size)
+        cell_state,hidden_state = cell_state.to(device),hidden_state.to(device)
+
+        return (cell_state,hidden_state)
+
+
 
 def findTrainExample(train_senetences, train_labels):
     ind = random.randint(0,len(train_senetences)-1)
@@ -101,7 +133,7 @@ def batch_train(encoder, train_sentences, train_labels, batch_size, w2i, epochs=
             sentence_tensor = pp.encodeSentence(sentence,w2i)
             label_tensor = torch.tensor(label,dtype=torch.float32).view(1,1)
             encoder_hidden = encoder.initHidden()
-            encoder_hidden = encoder_hidden.to(device)
+            #encoder_hidden = encoder_hidden.to(device)
             #input_length = sentence_tensor.size(0)
             #for ei in range(input_length):
             sentence_tensor = sentence_tensor.to(device)
@@ -129,7 +161,7 @@ def evaluate(encoder, test_sentences, test_labels, w2i):
         label_tensor = torch.tensor(label,dtype=torch.float32).view(1,1)
 
         encoder_hidden = encoder.initHidden()
-        encoder_hidden = encoder_hidden.to(device)
+        #encoder_hidden = encoder_hidden.to(device)
         #input_length = sentence_tensor.size(0)
         #for ei in range(input_length):
         sentence_tensor = sentence_tensor.to(device)
