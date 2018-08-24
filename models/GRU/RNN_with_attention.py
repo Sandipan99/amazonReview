@@ -14,9 +14,9 @@ import numpy as np
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-class Encoder(nn.Module):
+class EncoderLocalAttention(nn.Module):
     def __init__(self, input_size, hidden_size, output_size):
-        super(Encoder, self).__init__()
+        super(EncoderLocalAttention, self).__init__()
         self.hidden_size = hidden_size
         self.embedding = nn.Embedding(input_size, hidden_size)
         self.lstm = nn.LSTM(hidden_size, hidden_size)
@@ -159,7 +159,7 @@ if __name__=='__main__':
     hidden_size = 10
     input_size = len(w2i)
     output_size = 1
-    encoder = Encoder(input_size, hidden_size, output_size)
+    encoder = EncoderLocalAttention(input_size, hidden_size, output_size)
     encoder = encoder.to(device)
     batch_train(encoder, train_sentences, train_labels, 3, w2i)
     print("train_complete............")
