@@ -5,43 +5,47 @@
 import string
 import numpy as np
 import torch
+from collections import Counter, namedtuple
 
 def readFromFile(fname,vocabulary,translator):
     count = 0
     sentences = []
+    labels = []
     with open(fname) as fs:
         for line in fs:
             count+=1
-            line = line.translate(translator)
-            words = line.strip().lower().split()
+            label = line[0]
+            review = line[2:]
+            review = review.translate(translator)
+            words = review.strip().lower().split()
             sentences.append(words)
+            labels.append(int(label))
             for w in words:
-                vocabulary.append(w)
-            if count==50:
-                vocabulary = list(set(vocabulary))
-            if count==1000:
-                print("read: ",count)
+                vocabulary[w] = 1
 
-    return vocabulary,sentences
+    return vocabulary,sentences,labels
 
-def obtainW2i(fname_m,fname_f):
+def obtainW2i(**kwargs):
 
     translator = str.maketrans('', '', string.punctuation)
-    vocabulary = []
+    vocabulary = Counter()
+    all_sentences = {}
+    all_labels = {}
     w2i = {}
     w_c = 0
-    vocabulary,sentences_m = readFromFile(fname_m,vocabulary,translator)
-    vocabulary = list(set(vocabulary))
-    vocabulary,sentences_f = readFromFile(fname_f,vocabulary,translator)
-    vocabulary = list(set(vocabulary))
+    for label,fname in kwargs.items():
+        vocabulary,sentences,labels = readFromFile(fname,vocabulary,translator)
+        all_sentences[label] = sentences
+        all_labels[label] = labels
+    #vocabulary,sentences_f = readFromFile(fname_f,vocabulary,translator)
 
-    print("vocabulary size: ",len(vocabulary))
+    for i,w in enumerate(list(vocabulary)):
+        w2i[w]=i+1
 
-    for i in range(len(vocabulary)):
-        w2i[vocabulary[i]] = i
-    
     print("w2i size: ",len(w2i))
-    return vocabulary,w2i,sentences_m,sentences_f
+    return w2i,all_sentences,all_labels
+
+
 
 def encodeSentence(sentence,w2i):
 
