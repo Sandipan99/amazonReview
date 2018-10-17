@@ -11,21 +11,24 @@ def readFromFile(fname,vocabulary,translator):
     count = 0
     sentences = []
     labels = []
+
     with open(fname) as fs:
         for line in fs:
             count+=1
-            label = line[0]
+            #label = line[0]
             review = line[2:]
             review = review.translate(translator)
             words = review.strip().lower().split()
-            sentences.append(words)
-            labels.append(int(label))
+            #sentences.append(words)
+            #labels.append(int(label))
             for w in words:
                 vocabulary[w] = 1
-            if count%10000==0:
-                print("Accessed reviews: ",count)
+            #if count%10000==0:
+             #   vocabulary = list(set(vocabulary))
+            if count%100000==0:
+                print('Accessed reviews: ',count)
 
-    return vocabulary,sentences,labels
+    return vocabulary
 
 def obtainW2i(**kwargs):
 
@@ -34,19 +37,19 @@ def obtainW2i(**kwargs):
     all_sentences = {}
     all_labels = {}
     w2i = {}
-    w_c = 0
     for label,fname in kwargs.items():
-        vocabulary,sentences,labels = readFromFile(fname,vocabulary,translator)
-        all_sentences[label] = sentences
-        all_labels[label] = labels
-
+        #vocabulary,sentences,labels = readFromFile(fname,vocabulary,translator)
+        vocabulary = readFromFile(fname,vocabulary,translator)
+        #all_sentences[label] = sentences
+        #all_labels[label] = labels
     #vocabulary,sentences_f = readFromFile(fname_f,vocabulary,translator)
 
     for i,w in enumerate(list(vocabulary)):
         w2i[w]=i+1
 
+    vocabulary.clear()
     print("w2i size: ",len(w2i))
-    return w2i,all_sentences,all_labels
+    return w2i
 
 
 

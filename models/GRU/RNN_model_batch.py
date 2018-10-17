@@ -4,6 +4,7 @@ from torch.utils import data
 from torch.nn.utils import rnn
 from sklearn.metrics import accuracy_score
 
+import string
 import torch
 import torch.nn as nn
 from torch import optim
@@ -86,7 +87,7 @@ def sortbylength(X,y,s_lengths):
     return X[torch.LongTensor(indices),:],y[torch.LongTensor(indices)],sorted_lengths
 
 
-def train(encoder, dataset_train, dataset_validate, batch_size, w2i, epochs=15, learning_rate=0.001):
+def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
     validation_accuracy = 0
@@ -141,48 +142,56 @@ def sentence2tensor(sentence,w2i,pad,sent_length):
         S = S + [pad for i in range(sent_length - x)]
         return S
 
+
+def encodeDataset(fname,w2i,padding_idx,sent_length,translator):
+    reviews = []
+    labels = []
+    lengths = []
+    count = 0
+
+    with open(fname) as fs:
+        for line in fs:
+            count+=1
+            label = line[0]
+            review = line[2:]
+            review = review.translate(translator)
+            words = review.strip().lower().split()
+            reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))
+            if len(words)>sent_length:
+                lengths.append(sent_length)
+            else:
+                lengths.append(len(words))
+            labels.append(int(label))
+            if count%100000==0:
+                print('Encoded reviews: ',count)
+
+    return reviews,labels,lengths
+
 if __name__=='__main__':
-    w2i,all_sentences,all_labels = pp.obtainW2i(train = '../Data/train.csv',validate = '../Data/validation.csv')
-    print('Loaded vocabulary and dataset')
+    train_file,validation_file = '../Data/train.csv','../Data/validation.csv'
+    w2i = pp.obtainW2i(train = train_file,validate = validation_file)
+    print('Loaded vocabulary')
     w2i['<PAD>'] = 0
 
-    pad = 0
+    vocab_size = len(w2i)
     padding_idx = 0
     sent_length = 40
-    reviews_train = []
-    labels_train = []
-    lengths_train = []
+    translator = str.maketrans('', '', string.punctuation)
 
-    reviews_validate = []
-    labels_validate = []
-    lengths_validate = []
+    reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length,translator)
+    reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length,translator)
 
-    for s in range(len(all_sentences['train'])):
-        reviews_train.append(sentence2tensor(all_sentences['train'][s],w2i,pad,sent_length))
-        labels_train.append(all_labels['train'][s])
-        if len(all_sentences['train'][s])>sent_length:
-            lengths_train.append(sent_length)
-        else:
-            lengths_train.append(len(all_sentences['train'][s]))
-
-    for s in range(len(all_sentences['validate'])):
-        reviews_validate.append(sentence2tensor(all_sentences['validate'][s],w2i,pad,sent_length))
-        labels_validate.append(all_labels['validate'][s])
-        if len(all_sentences['validate'][s])>sent_length:
-            lengths_validate.append(sent_length)
-        else:
-            lengths_validate.append(len(all_sentences['validate'][s]))
 
     #print(reviews[2])
-    
+    w2i = {}
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
-    hidden_size = 300
-    input_size = len(w2i)
+    hidden_size = 250
+    input_size = vocab_size
     output_size = 2
     layers = 1
     batch_size = 512
     encoder = Encoder(input_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
-    train(encoder,dataset_train, dataset_validate, batch_size,w2i)
+    train(encoder,dataset_train, dataset_validate, batch_size)
 
