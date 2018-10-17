@@ -9,7 +9,6 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 from torch.autograd import Variable
-import random
 import preprocess as pp
 import numpy as np
 
@@ -67,7 +66,7 @@ class Encoder(nn.Module):
 
         X, _ = torch.nn.utils.rnn.pad_packed_sequence(X, batch_first=True)
 
-        idx = (torch.LongTensor(X_lengths) - 1).view(-1, 1).expand(len(X_lengths), X.size(2))
+        idx = (torch.cuda.LongTensor(X_lengths) - 1).view(-1, 1).expand(len(X_lengths), X.size(2))
 
         time_dimension = 1 if self.batch_first else 0
         idx = idx.unsqueeze(time_dimension)
@@ -96,6 +95,7 @@ def train(encoder, dataset_train, dataset_validate, batch_size, w2i, epochs=4, l
         loader_train = data.DataLoader(dataset_train,batch_size=batch_size,shuffle=True)
         for X,y,X_lengths in loader_train:
             X,y,X_lengths = sortbylength(X,y,X_lengths)
+            X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
             b_size = y.size(0)
             output = encoder(X,X_lengths,b_size)
             loss = criterion(output,y)
@@ -110,12 +110,13 @@ def train(encoder, dataset_train, dataset_validate, batch_size, w2i, epochs=4, l
         accuracy = []
         for X,y,X_lengths in loader_validate:
             X,y,X_lengths = sortbylength(X,y,X_lengths)
+            X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
             b_size = y.size(0)
             output = encoder(X,X_lengths,b_size)
             output = F.softmax(output,dim=1)
             value,labels = torch.max(output,1)
 
-            accuracy.append(accuracy_score(y.numpy(),labels.numpy()))
+            accuracy.append(accuracy_score(y.cpu().numpy(),labels.cpu().numpy()))
 
         mean_accuracy = np.mean(accuracy)
         if validation_accuracy < mean_accuracy:
@@ -164,15 +165,16 @@ if __name__=='__main__':
             lengths_validate.append(len(all_sentences['validate'][s]))
 
     #print(reviews[2])
-
+    '''
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
-    hidden_size = 100
+    hidden_size = 150
     input_size = len(w2i)
     output_size = 2
     layers = 1
-    batch_size = 4
+    batch_size = 512
     encoder = Encoder(input_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size,w2i)
     #dataset_infer = DataInference(reviews_infer, lengths_infer)
+    '''

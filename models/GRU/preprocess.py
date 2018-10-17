@@ -37,6 +37,11 @@ def obtainW2i(**kwargs):
         vocabulary,sentences,labels = readFromFile(fname,vocabulary,translator)
         all_sentences[label] = sentences
         all_labels[label] = labels
+
+    for label in all_sentences:
+        print(label)
+        print(all_sentences[label])
+        print(all_labels[label])
     #vocabulary,sentences_f = readFromFile(fname_f,vocabulary,translator)
 
     for i,w in enumerate(list(vocabulary)):
