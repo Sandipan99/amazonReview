@@ -27,7 +27,7 @@ class Dataset(data.Dataset):
     def __getitem__(self,index):
         X = torch.tensor(self.reviews[index],dtype=torch.long)
         y = torch.tensor(self.labels[index],dtype=torch.long)
-        s_lengths = lengths[index]
+        s_lengths = self.lengths[index]
         return X,y,s_lengths
 
 class DataInference(data.Dataset):
@@ -40,12 +40,12 @@ class DataInference(data.Dataset):
 
     def __getitem__(self,index):
         X = torch.tensor(self.reviews[index],dtype=torch.long)
-        s_lengths = lengths[index]
+        s_lengths = self.lengths[index]
         return X,s_lengths
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, batch_size, layers, padding_idx):
+    def __init__(self, input_size, hidden_size, output_size, layers, padding_idx):
         super(Encoder, self).__init__()
 
         self.hidden_size = hidden_size
@@ -57,9 +57,9 @@ class Encoder(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.batch_first = True
 
-    def forward(self, X, X_lengths):
+    def forward(self, X, X_lengths, batch_size):
 
-        self.hidden = self.initHidden()
+        self.hidden = self.initHidden(batch_size)
         X = self.embedding(X)
         X = rnn.pack_padded_sequence(X, X_lengths, batch_first=True)
 
@@ -78,8 +78,8 @@ class Encoder(nn.Module):
 
         return X
 
-    def initHidden(self):
-         return torch.zeros(self.layers, self.batch_size, self.hidden_size).to(device)
+    def initHidden(self,batch_size):
+         return torch.zeros(self.layers, batch_size, self.hidden_size).to(device)
 
 
 def sortbylength(X,y,s_lengths):
@@ -87,33 +87,41 @@ def sortbylength(X,y,s_lengths):
     return X[torch.LongTensor(indices),:],y[torch.LongTensor(indices)],sorted_lengths
 
 
-def train(encoder, dataset, batch_size, w2i, epochs=1, learning_rate=0.001):
+def train(encoder, dataset_train, dataset_validate, batch_size, w2i, epochs=4, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
+    validation_accuracy = 0
     for i in range(epochs):
 
         loader_train = data.DataLoader(dataset_train,batch_size=batch_size,shuffle=True)
         for X,y,X_lengths in loader_train:
             X,y,X_lengths = sortbylength(X,y,X_lengths)
-            output = encoder(X,X_lengths)
+            b_size = y.size(0)
+            output = encoder(X,X_lengths,b_size)
             loss = criterion(output,y)
             print('loss: ',loss)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
+        print("training complete for epoch: ",i)
+
         loader_validate = data.DataLoader(dataset_validate,batch_size=batch_size)
-        for X,y,X_lengths in loader_train:
+        accuracy = []
+        for X,y,X_lengths in loader_validate:
             X,y,X_lengths = sortbylength(X,y,X_lengths)
-            output = encoder(X,X_lengths)
+            b_size = y.size(0)
+            output = encoder(X,X_lengths,b_size)
             output = F.softmax(output,dim=1)
             value,labels = torch.max(output,1)
 
+            accuracy.append(accuracy_score(y.numpy(),labels.numpy()))
 
-
-def evaluate(encoder, dataset, batch_size):
-    loader = data.DataLoader(dataset, batch_size=batch_size)
-
+        mean_accuracy = np.mean(accuracy)
+        if validation_accuracy < mean_accuracy:
+            validation_accuracy = mean_accuracy
+            print('accuracy: ',mean_accuracy)
+            torch.save(encoder.state_dict(), 'encoder_model.pt')
 
 
 def sentence2tensor(sentence,w2i,pad,sent_length):
@@ -130,7 +138,7 @@ if __name__=='__main__':
     w2i['<PAD>'] = 0
     pad = 0
     padding_idx = 0
-    sent_length = 35
+    sent_length = 40
     reviews_train = []
     labels_train = []
     lengths_train = []
@@ -164,6 +172,7 @@ if __name__=='__main__':
     output_size = 2
     layers = 1
     batch_size = 4
-    encoder = Encoder(input_size, hidden_size, output_size, batch_size ,layers, padding_idx)
-    train(encoder,dataset,batch_size,w2i)
+    encoder = Encoder(input_size, hidden_size, output_size,layers, padding_idx)
+    encoder = encoder.to(device)
+    train(encoder,dataset_train, dataset_validate, batch_size,w2i)
     #dataset_infer = DataInference(reviews_infer, lengths_infer)
