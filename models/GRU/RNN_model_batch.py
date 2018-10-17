@@ -142,7 +142,7 @@ def sentence2tensor(sentence,w2i,pad,sent_length):
         return S
 
 if __name__=='__main__':
-    w2i,all_sentences,all_labels = pp.obtainW2i(train = '../Data/train_s.csv',validate = '../Data/test_s.csv')
+    w2i,all_sentences,all_labels = pp.obtainW2i(train = '../Data/train.csv',validate = '../Data/validation.csv')
     print('Loaded vocabulary and dataset')
     w2i['<PAD>'] = 0
 
@@ -177,7 +177,7 @@ if __name__=='__main__':
     
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
-    hidden_size = 150
+    hidden_size = 300
     input_size = len(w2i)
     output_size = 2
     layers = 1

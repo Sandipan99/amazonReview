@@ -22,7 +22,7 @@ def readFromFile(fname,vocabulary,translator):
             labels.append(int(label))
             for w in words:
                 vocabulary[w] = 1
-            if count%10000:
+            if count%10000==0:
                 print("Accessed reviews: ",count)
 
     return vocabulary,sentences,labels
