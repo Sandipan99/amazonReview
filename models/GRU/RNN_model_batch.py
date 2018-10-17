@@ -86,25 +86,31 @@ def sortbylength(X,y,s_lengths):
     return X[torch.LongTensor(indices),:],y[torch.LongTensor(indices)],sorted_lengths
 
 
-def train(encoder, dataset_train, dataset_validate, batch_size, w2i, epochs=4, learning_rate=0.001):
+def train(encoder, dataset_train, dataset_validate, batch_size, w2i, epochs=15, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss()
     validation_accuracy = 0
     for i in range(epochs):
-
+        batch_cnt = 0
         loader_train = data.DataLoader(dataset_train,batch_size=batch_size,shuffle=True)
         for X,y,X_lengths in loader_train:
+            batch_cnt+=1
             X,y,X_lengths = sortbylength(X,y,X_lengths)
             X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
             b_size = y.size(0)
             output = encoder(X,X_lengths,b_size)
             loss = criterion(output,y)
-            print('loss: ',loss)
+            if batch_cnt%100==0:
+                print('Loss: ',loss)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
+
         print("training complete for epoch: ",i)
+        print("Loss after epoch: ",loss)
+        print("------------------------")
+
 
         loader_validate = data.DataLoader(dataset_validate,batch_size=batch_size)
         accuracy = []
@@ -125,6 +131,7 @@ def train(encoder, dataset_train, dataset_validate, batch_size, w2i, epochs=4, l
             torch.save(encoder.state_dict(), 'encoder_model.pt')
 
 
+
 def sentence2tensor(sentence,w2i,pad,sent_length):
     S = [w2i[w] for w in sentence]
     if len(S)>sent_length:
@@ -136,7 +143,9 @@ def sentence2tensor(sentence,w2i,pad,sent_length):
 
 if __name__=='__main__':
     w2i,all_sentences,all_labels = pp.obtainW2i(train = '../Data/train_s.csv',validate = '../Data/test_s.csv')
+    print('Loaded vocabulary and dataset')
     w2i['<PAD>'] = 0
+
     pad = 0
     padding_idx = 0
     sent_length = 40
@@ -165,7 +174,7 @@ if __name__=='__main__':
             lengths_validate.append(len(all_sentences['validate'][s]))
 
     #print(reviews[2])
-    '''
+    
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
     hidden_size = 150
@@ -176,5 +185,4 @@ if __name__=='__main__':
     encoder = Encoder(input_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size,w2i)
-    #dataset_infer = DataInference(reviews_infer, lengths_infer)
-    '''
+
