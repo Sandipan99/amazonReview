@@ -5,7 +5,7 @@
 import string
 import numpy as np
 import torch
-from collections import Counter, namedtuple
+from collections import Counter
 
 def readFromFile(fname,vocabulary,translator):
     count = 0
@@ -22,6 +22,8 @@ def readFromFile(fname,vocabulary,translator):
             labels.append(int(label))
             for w in words:
                 vocabulary[w] = 1
+            if count%10000:
+                print("Accessed reviews: ",count)
 
     return vocabulary,sentences,labels
 
