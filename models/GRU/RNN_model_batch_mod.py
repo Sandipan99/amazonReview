@@ -3,7 +3,8 @@
 
 from torch.utils import data
 from torch.nn.utils import rnn
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
+
 
 import string
 import torch
@@ -115,7 +116,9 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learn
         print("training complete for epoch: ",i)
         print("Loss after epoch: ",loss)
         print("------------------------")
-
+        
+        true_labels = np.array([])
+        predicted_labels = np.array([])
 
         loader_validate = data.DataLoader(dataset_validate,batch_size=batch_size)
         accuracy = []
@@ -127,13 +130,17 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learn
             output = F.softmax(output,dim=1)
             value,labels = torch.max(output,1)
 
-            accuracy.append(accuracy_score(y.cpu().numpy(),labels.cpu().numpy()))
+            #accuracy.append(accuracy_score(y.cpu().numpy(),labels.cpu().numpy()))
+            true_labels = np.concatenate((true_labels,y.cpu().numpy()))
+            predicted_labels = np.concatenate((predicted_labels,labels.cpu().numpy()))
 
-
-        mean_accuracy = np.mean(accuracy)
-        if validation_accuracy < mean_accuracy:
-            validation_accuracy = mean_accuracy
-            print('accuracy improve to: ',mean_accuracy)
+        accuracy = accuracy_score(true_labels,predicted_labels)
+        print(accuracy)
+        print(confusion_matrix(true_labels,predicted_labels))
+        
+        if validation_accuracy < accuracy:
+            validation_accuracy = accuracy
+            print('accuracy improve to: ',accuracy)
             torch.save(encoder.state_dict(), 'encoder_model.pt')
 
 
@@ -173,7 +180,7 @@ def encodeDataset(fname,w2i,padding_idx,sent_length,translator):
     return reviews,labels,lengths
 
 if __name__=='__main__':
-    train_file,validation_file = '../Data/train_s.csv','../Data/test_s.csv'
+    train_file,validation_file = '../Data/train.csv','../Data/validation.csv'
     w2i = pp.obtainW2i(train = train_file,validate = validation_file)
     print('Loaded vocabulary')
     w2i['<PAD>'] = 0
@@ -198,7 +205,7 @@ if __name__=='__main__':
     input_size = embedding_size
     output_size = 2
     layers = 1
-    batch_size = 4
+    batch_size = 256
     encoder = Encoder(input_size, hidden_size, output_size,layers)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size)
