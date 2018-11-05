@@ -26,7 +26,7 @@ with open("../amazon_review_with_gender","w") as ft:
             count_r+=1
             try:
                 name = data['reviewerName']
-                first_name = name.split(" ")[0].replace(".","")
+                first_name = name.split(" ")[0].replace(".","").lower()
                 name = name.replace("|",",")
                 gender = d.get_gender(first_name)
                 review = data['reviewText']
