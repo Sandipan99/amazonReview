@@ -1,6 +1,9 @@
 import gender_guesser.detector as gender
 import json
 import gzip
+import string
+
+translator = str.maketrans('', '', string.punctuation)
 
 d = gender.Detector()
 
@@ -16,6 +19,14 @@ ft_n_d = open("amazon_undecided.csv","w")
 c_n_d = 0
 
 
+
+def Gender(name):
+    name = name.translate(translator).split()[0]
+    name = ''.join([i for i in name if not i.isdigit()])
+    return d.get_gender(name,'usa')
+
+
+
 count_r = 0
 count_in = 0
 
@@ -26,9 +37,7 @@ with open("../amazon_review_with_gender","w") as ft:
             count_r+=1
             try:
                 name = data['reviewerName']
-                first_name = name.split(" ")[0].replace(".","").lower()
-                name = name.replace("|",",")
-                gender = d.get_gender(first_name)
+                gender = Gender(name)
                 review = data['reviewText']
                 review = review.replace("|",",")
                 help = data['helpful']
