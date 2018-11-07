@@ -191,7 +191,7 @@ if __name__=='__main__':
 
     vocab_size = len(w2i)
     padding_idx = 0
-    sent_length = 40
+    sent_length = 80
     translator = str.maketrans('', '', string.punctuation)
     embedding_size = 50
 
@@ -213,7 +213,7 @@ if __name__=='__main__':
     input_size = embedding_size
     output_size = 2
     layers = 1
-    batch_size = 1024
+    batch_size = 512
     encoder = Encoder(input_size, hidden_size, output_size,layers)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size)

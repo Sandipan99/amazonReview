@@ -45,13 +45,15 @@ class DataInference(data.Dataset):
 
 
 class Encoder(nn.Module):
-    def __init__(self, input_size, hidden_size, output_size, layers, padding_idx):
+    def __init__(self, input_size, encoding_size, hidden_size, output_size, layers, padding_idx):
         super(Encoder, self).__init__()
 
         self.hidden_size = hidden_size
+        self.encoding_size = encoding_size
         self.layers = layers
         self.batch_size = batch_size
-        self.embedding = nn.Embedding(input_size, hidden_size, padding_idx=padding_idx)
+        self.embedding = nn.Embedding(input_size, encoding_size, padding_idx=padding_idx)
+        self.e2i = nn.Linear(encoding_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True, num_layers=self.layers)
         self.out = nn.Linear(hidden_size, output_size)
         self.sigmoid = nn.Sigmoid()
@@ -61,6 +63,7 @@ class Encoder(nn.Module):
 
         self.hidden = self.initHidden(batch_size)
         X = self.embedding(X)
+        X = self.e2i(X)
         X = rnn.pack_padded_sequence(X, X_lengths, batch_first=True)
 
         X, self.hidden = self.gru(X, self.hidden)
@@ -156,14 +159,15 @@ def encodeDataset(fname,w2i,padding_idx,sent_length,translator):
             review = line[2:]
             review = review.translate(translator)
             words = review.strip().lower().split()
-            reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))
-            if len(words)>sent_length:
-                lengths.append(sent_length)
-            else:
-                lengths.append(len(words))
-            labels.append(int(label))
-            if count%100000==0:
-                print('Encoded reviews: ',count)
+            if len(words)>0:
+                reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))
+                if len(words)>sent_length:
+                    lengths.append(sent_length)
+                else:
+                    lengths.append(len(words))
+                labels.append(int(label))
+                if count%100000==0:
+                    print('Encoded reviews: ',count)
 
     return reviews,labels,lengths
 
@@ -175,25 +179,27 @@ if __name__=='__main__':
 
     vocab_size = len(w2i)
     padding_idx = 0
-    sent_length = 40
+    sent_length = 80
     translator = str.maketrans('', '', string.punctuation)
 
     reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length,translator)
     reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length,translator)
 
-    print('created batched from data loader')
+    print('created batches from data loader')
 
 
     #print(reviews[2])
     w2i = {}
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
+    encoding_size = 25
+
     hidden_size = 250
     input_size = vocab_size
     output_size = 2
     layers = 1
-    batch_size = 512
-    encoder = Encoder(input_size, hidden_size, output_size,layers, padding_idx)
+    batch_size = 128
+    encoder = Encoder(input_size, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size)
 
