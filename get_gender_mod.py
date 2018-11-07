@@ -12,21 +12,26 @@ male = 0
 female = 0
 
 
-with open('amazon_mostly_female.csv') as fs:
+with open('../amazon_undecided.csv') as fs:
     for line in fs:
         temp = line.strip().split('|')
-        if len(temp)>2:
+        if len(temp)==8:
             total_count+=1
-            name = temp[2].translate(translator).split()[0]
-            name = ''.join([i for i in name if not i.isdigit()])
-            gender = d.get_gender(name,'usa')
-            if gender=='male':
-                male+=1
-            elif gender=='female':
-                female+=1
-            else:
-                pass
-            print(name,gender)
+            if total_count%1000000==0:
+                print('accessed review: ',total_count)
+            try:
+                name = temp[2].translate(translator).split()[0].lower()
+                name = ''.join([i for i in name if not i.isdigit()])
+                gender = d.get_gender(name,'usa')
+                if gender=='male':
+                    male+=1
+                elif gender=='female':
+                    female+=1
+                else:
+                    print(name)
+            except:
+                print('Except: ',name)
+            #print(name,gender)
 
 
 print('total count:',total_count)

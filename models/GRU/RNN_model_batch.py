@@ -181,6 +181,8 @@ if __name__=='__main__':
     reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length,translator)
     reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length,translator)
 
+    print('created batched from data loader')
+
 
     #print(reviews[2])
     w2i = {}
