@@ -13,6 +13,12 @@ from torch.autograd import Variable
 import preprocess as pp
 import numpy as np
 
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
+
+import pickle
+
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Dataset(data.Dataset):
@@ -133,6 +139,20 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learn
             validation_accuracy = mean_accuracy
             print('accuracy: ',mean_accuracy)
             torch.save(encoder.state_dict(), 'encoder_model.pt')
+    
+
+def inference(encoder,dataset_test,batch_size):
+    loader = data.DataLoader(dataset_test,batch_size=batch_size)
+    for X,y,X_lengths in loader_validate:
+        X,y,X_lengths = sortbylength(X,y,X_lengths)
+        X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
+        b_size = y.size(0)
+        output = encoder(X,X_lengths,b_size)
+        output = F.softmax(output,dim=1)
+        value,labels = torch.max(output,1)
+
+        return accuracy_score(y.cpu().numpy(),labels.cpu().numpy()),y.cpu().numpy(),labels.cpu().numpy()
+
 
 
 
@@ -146,20 +166,19 @@ def sentence2tensor(sentence,w2i,pad,sent_length):
         return S
 
 
-def encodeDataset(fname,w2i,padding_idx,sent_length,translator):
+def encodeDataset(fname,w2i,padding_idx,sent_length):
     reviews = []
     labels = []
     lengths = []
     count = 0
 
-    with open(fname) as fs:
-        for line in fs:
-            count+=1
-            label = line[0]
-            review = line[2:]
-            review = review.translate(translator)
-            words = review.strip().lower().split()
-            if len(words)>0:
+    with open(fname+'_filtered') as fs:    
+         for line in fs:
+             count+=1
+             label = line[0]
+             review = line[2:]
+             words = word_tokenize(review.strip())
+             if len(words)>0:
                 reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))
                 if len(words)>sent_length:
                     lengths.append(sent_length)
@@ -169,21 +188,21 @@ def encodeDataset(fname,w2i,padding_idx,sent_length,translator):
                 if count%100000==0:
                     print('Encoded reviews: ',count)
 
+
     return reviews,labels,lengths
 
 if __name__=='__main__':
-    train_file,validation_file = '../Data/train.csv','../Data/validation.csv'
-    w2i = pp.obtainW2i(train = train_file,validate = validation_file)
+    sent_length = 100
+    train_file,validation_file,test_file = '../Data/train.csv','../Data/validation.csv','../Data/test.csv'
+    w2i = pp.obtainW2i(sent_length,train = train_file,validate = validation_file)
     print('Loaded vocabulary')
     w2i['<PAD>'] = 0
 
     vocab_size = len(w2i)
-    padding_idx = 0
-    sent_length = 80
-    translator = str.maketrans('', '', string.punctuation)
+    padding_idx = 0 
 
-    reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length,translator)
-    reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length,translator)
+    reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length)
+    reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length)
 
     print('created batches from data loader')
 
@@ -192,7 +211,7 @@ if __name__=='__main__':
     w2i = {}
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
-    encoding_size = 25
+    encoding_size = 50
 
     hidden_size = 250
     input_size = vocab_size

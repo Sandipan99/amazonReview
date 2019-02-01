@@ -6,40 +6,50 @@ import string
 import numpy as np
 import torch
 from collections import Counter
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from nltk.stem import PorterStemmer
 
-def readFromFile(fname,vocabulary,translator):
+def readFromFile(fname,vocabulary,translator,stop_words,ps,sent_length):
     count = 0
     sentences = []
     labels = []
 
-    with open(fname) as fs:
-        for line in fs:
-            count+=1
-            #label = line[0]
-            review = line[2:]
-            review = review.translate(translator)
-            words = review.strip().lower().split()
-            #sentences.append(words)
-            #labels.append(int(label))
-            for w in words:
-                vocabulary[w] = 1
-            #if count%10000==0:
-             #   vocabulary = list(set(vocabulary))
-            if count%100000==0:
-                print('Accessed reviews: ',count)
+    with open('../Data/'+fname+'_filtered','w') as ft:
+        with open(fname) as fs:
+            for line in fs:
+                count+=1
+                label = line[0]
+                review = line[2:]
+                review = review.translate(translator)
+                words = word_tokenize(review.strip().lower())
+                if len(words)>sent_length:
+                    words = words[:sent_length]
+                filtered_words = [ps.stem(w) for w in words if not w in stop_words]
+                ft.write(label+','+' '.join(filtered_words))
+                ft.write('\n')
+                #sentences.append(words)
+                #labels.append(int(label))
+                for w in filtered_words:
+                    vocabulary[w] = 1
+                #if count%10000==0:
+                 #   vocabulary = list(set(vocabulary))
+                if count%100000==0:
+                    print('Accessed reviews: ',count)
 
     return vocabulary
 
-def obtainW2i(**kwargs):
-
+def obtainW2i(sent_length,**kwargs):
     translator = str.maketrans('', '', string.punctuation)
     vocabulary = Counter()
     all_sentences = {}
     all_labels = {}
     w2i = {}
+    stop_words = set(stopwords.words('english'))
+    ps = PorterStemmer()
     for label,fname in kwargs.items():
         #vocabulary,sentences,labels = readFromFile(fname,vocabulary,translator)
-        vocabulary = readFromFile(fname,vocabulary,translator)
+        vocabulary = readFromFile(fname,vocabulary,translator,stop_words,ps,sent_length)
         #all_sentences[label] = sentences
         #all_labels[label] = labels
     #vocabulary,sentences_f = readFromFile(fname_f,vocabulary,translator)
