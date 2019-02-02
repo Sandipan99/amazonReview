@@ -98,7 +98,7 @@ def sortbylength(X,y,s_lengths):
 
 def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.CrossEntropyLoss() # cross entropy loss in pytorch combines logsoftmax and negativeloglikelihoodloss...softmax layer not needed
     validation_accuracy = 0
     for i in range(epochs):
         batch_cnt = 0
@@ -200,9 +200,15 @@ if __name__=='__main__':
 
     vocab_size = len(w2i)
     padding_idx = 0 
+    
+    with open('word2index','wb') as ft:
+        ft.dump(w2i)
 
+    
     reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length)
     reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length)
+    #reviews_test, labels_test, lengths_test = encodeDataset(test_file,w2i,padding_idx,sent_length)
+
 
     print('created batches from data loader')
 
@@ -221,4 +227,5 @@ if __name__=='__main__':
     encoder = Encoder(input_size, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size)
+    
 
