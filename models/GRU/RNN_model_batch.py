@@ -57,7 +57,6 @@ class Encoder(nn.Module):
         self.hidden_size = hidden_size
         self.encoding_size = encoding_size
         self.layers = layers
-        self.batch_size = batch_size
         self.embedding = nn.Embedding(input_size, encoding_size, padding_idx=padding_idx)
         self.e2i = nn.Linear(encoding_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True, num_layers=self.layers)
@@ -111,6 +110,8 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learn
             output = encoder(X,X_lengths,b_size)
             loss = criterion(output,y)
             if batch_cnt%100==0:
+                print('epochs: ',i)
+                print('batch_cnt: ',batch_cnt)
                 print('Loss: ',loss)
             optimizer.zero_grad()
             loss.backward()
@@ -191,20 +192,30 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
 
     return reviews,labels,lengths
 
+
 if __name__=='__main__':
     sent_length = 100
     train_file,validation_file,test_file = '../Data/train.csv','../Data/validation.csv','../Data/test.csv'
-    w2i = pp.obtainW2i(sent_length,train = train_file,validate = validation_file)
-    print('Loaded vocabulary')
-    w2i['<PAD>'] = 0
+    #w2i = pp.obtainW2i(sent_length,train = train_file,validate = validation_file,test=test_file)
+    #w2i = pp.word2index(train = '../Data/train.csv_filtered',validation = '../Data/validation.csv_filtered',test='../Data/test.csv_filtered')
+    #print('Loaded vocabulary')
+    #w2i['<PAD>'] = 0
+
+    #vocab_size = len(w2i)
+    #padding_idx = 0 
+    
+    #with open('word2index','wb') as ft:
+    #    pickle.dump(w2i,ft)
+
+    with open('word2index','rb') as fs:
+        w2i = pickle.load(fs)
+
+    print('loaded vocabulary')
+    print('size of vocabulary: ',len(w2i))
 
     vocab_size = len(w2i)
     padding_idx = 0 
-    
-    with open('word2index','wb') as ft:
-        ft.dump(w2i)
 
-    
     reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length)
     reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length)
     #reviews_test, labels_test, lengths_test = encodeDataset(test_file,w2i,padding_idx,sent_length)
@@ -223,7 +234,7 @@ if __name__=='__main__':
     input_size = vocab_size
     output_size = 2
     layers = 1
-    batch_size = 128
+    batch_size = 256
     encoder = Encoder(input_size, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size)

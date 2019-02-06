@@ -39,6 +39,29 @@ def readFromFile(fname,vocabulary,translator,stop_words,ps,sent_length):
 
     return vocabulary
 
+def word2index(**kwargs):
+    w2i = {}
+    count = 1
+    rev_cnt = 0
+    vocabulary = Counter()
+    for label,fname in kwargs.items():
+        with open(fname) as fs:
+            for line in fs:
+                rev_cnt+=1
+                if rev_cnt%1000000==0:
+                    print('processed reviews: ',rev_cnt)
+                label = line[0]
+                review = line[2:]
+                words = word_tokenize(review.strip())
+                for w in words:
+                    vocabulary[w] = 1
+
+    for w in vocabulary:
+        w2i[w]=count
+        count+=1
+               
+    return w2i
+
 def obtainW2i(sent_length,**kwargs):
     translator = str.maketrans('', '', string.punctuation)
     vocabulary = Counter()
@@ -98,7 +121,8 @@ def testTrainSplit(sentences_m, sentences_f, sf=0.8):
 
 if __name__=="__main__":
 
-    vocabulary,w2i,sentences_m,sentences_f = obtainW2i("../Data/sample_male","../Data/sample_female")
-    train_senetences, train_labels, test_sentences, test_labels = testTrainSplit(sentences_m,sentences_f)
-    print(test_sentences)
-    print(test_labels)
+    #vocabulary,w2i,sentences_m,sentences_f = obtainW2i("../Data/sample_male","../Data/sample_female")
+    #train_senetences, train_labels, test_sentences, test_labels = testTrainSplit(sentences_m,sentences_f)
+    #print(test_sentences)
+    #print(test_labels)
+    w2i = obtainW2i(100,test = '../Data/train.csv')
