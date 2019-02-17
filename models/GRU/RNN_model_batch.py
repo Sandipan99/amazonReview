@@ -136,10 +136,11 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learn
             accuracy.append(accuracy_score(y.cpu().numpy(),labels.cpu().numpy()))
 
         mean_accuracy = np.mean(accuracy)
+        print('accuracy: {} at epoch: {}'.format(mean_accuracy,i))
         if validation_accuracy < mean_accuracy:
             validation_accuracy = mean_accuracy
             print('accuracy: ',mean_accuracy)
-            torch.save(encoder.state_dict(), 'encoder_model.pt')
+            torch.save(encoder.state_dict(), 'encoder_model_2.pt')
     
 
 def inference(encoder,dataset_test,batch_size):
@@ -202,7 +203,7 @@ if __name__=='__main__':
     #w2i['<PAD>'] = 0
 
     #vocab_size = len(w2i)
-    #padding_idx = 0 
+
     
     #with open('word2index','wb') as ft:
     #    pickle.dump(w2i,ft)
@@ -233,7 +234,7 @@ if __name__=='__main__':
     hidden_size = 250
     input_size = vocab_size
     output_size = 2
-    layers = 1
+    layers = 2
     batch_size = 256
     encoder = Encoder(input_size, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
