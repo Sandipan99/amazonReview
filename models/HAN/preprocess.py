@@ -40,6 +40,6 @@ def clean(**kwargs):  # obtains a word to index mapping as well as clean the dat
 
 if __name__ == '__main__':
 
-    w2i = clean(train_file='', validation_file='', test_file='')
+    w2i = clean(train_file='../Data/train_s.csv', validation_file='../Data/validation_s.csv', test_file='../Data/test_s.csv')
     with open('word2index.pickle','wb') as ft:
         pickle.dump(w2i,ft)

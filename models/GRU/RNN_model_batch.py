@@ -196,7 +196,7 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
 
 if __name__=='__main__':
     sent_length = 100
-    train_file,validation_file,test_file = '../Data/train.csv','../Data/validation.csv','../Data/test.csv'
+    train_file,validation_file = '../Data/train_s.csv','../Data/test_s.csv'
     #w2i = pp.obtainW2i(sent_length,train = train_file,validate = validation_file,test=test_file)
     #w2i = pp.word2index(train = '../Data/train.csv_filtered',validation = '../Data/validation.csv_filtered',test='../Data/test.csv_filtered')
     #print('Loaded vocabulary')
