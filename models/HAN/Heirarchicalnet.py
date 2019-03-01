@@ -3,11 +3,12 @@ import torch.nn as nn
 from torch import optim
 import numpy as np
 from torch.nn.utils import rnn
+import torch.nn.functional as F
 
 import itertools
 
 import pickle
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score,confusion_matrix
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
@@ -184,15 +185,71 @@ def sortbylength(all_sent,all_sent_len):
     return all_sent[torch.LongTensor(indices),:],sorted_lengths,mapped_index
 
 
-def train(wordEnc, sentEnc, train_dataset, batch_size=4, epochs=10, learning_rate=0.001):
+def ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size):
+
+    true_labels = []
+    predicted_labels = []
+    data = createBatches(validation_dataset,batch_size)
+    for batch, lengths in data:
+        if len(lengths) > 2:
+            sent, label = mergeSentences(batch)
+            true_labels += label
+            label = torch.LongTensor(label)
+            sentence_length = [len(s) for s in sent]
+            sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
+            X = torch.from_numpy(sent)
+            X_lengths = torch.LongTensor(sentence_length)
+            X, X_lengths, mapped_index = sortbylength(X, X_lengths)
+            batch_s = len(sentence_length)
+
+            X, X_lengths, label = X.to(device), X_lengths.to(device), label.to(device)
+
+            sent_out = wordEnc(X, X_lengths, batch_s)
+            sent_out = sent_out.squeeze()[mapped_index, :]
+
+            curr_length = lengths[0]
+
+            review_batch = torch.Tensor().to(device)
+
+            r = 0
+            c = sent_out.shape[1]
+            for l in lengths:
+                if l == curr_length:
+                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
+                    r += l
+                else:
+                    diff = curr_length - l
+                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :], torch.zeros(diff, c).to(device)))
+                    r += l
+
+            review_batch = review_batch.view(len(lengths), -1, c)
+
+            review_lengths = torch.LongTensor(lengths).to(device)
+
+            output = sentEnc(review_batch, review_lengths , len(lengths))
+
+            output = output.squeeze()
+
+            output = F.softmax(output,dim=1)
+            value,lbl = torch.max(output,1)
+            predicted_labels += lbl.cpu().numpy().tolist()
+
+            #print(true_labels)
+            #print(predicted_labels)
+
+            print(confusion_matrix(true_labels,predicted_labels))
+            return accuracy_score(true_labels,predicted_labels)
+
+
+def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=4, epochs=10, learning_rate=0.001):
     wordEnc_optimizer = optim.Adam(wordEnc.parameters(), lr=learning_rate)
     sentEnc_optimizer = optim.Adam(sentEnc.parameters(), lr=learning_rate)
 
     criterion = nn.CrossEntropyLoss()
-    count = 1
 
     for _ in range(epochs):
         data = createBatches(train_dataset,batch_size)
+        count = 0
         for batch, lengths in data:
             if len(lengths) > 2:
                 count+=1
@@ -234,7 +291,7 @@ def train(wordEnc, sentEnc, train_dataset, batch_size=4, epochs=10, learning_rat
                 loss = criterion(output.squeeze(), label)
 
                 if count%100==0:
-                    print(loss)
+                    print('epoch - {}, batch count - {}, loss - {}'.format(_,count,loss))
 
                 wordEnc_optimizer.zero_grad()
                 sentEnc_optimizer.zero_grad()
@@ -243,9 +300,10 @@ def train(wordEnc, sentEnc, train_dataset, batch_size=4, epochs=10, learning_rat
                 wordEnc_optimizer.step()
 
         # calculate validation accuracy...
-
+        accuracy = ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size)
 
         print('completed epoch {}'.format(_))
+        print('accuracy - {}'.format(accuracy))
 
 
 if __name__=='__main__':
@@ -272,15 +330,7 @@ if __name__=='__main__':
     wordEnc.to(device)
     sentEnc.to(device)
 
-    train(wordEnc,sentEnc,train_dataset)
+    train(wordEnc,sentEnc,train_dataset,validation_dataset)
     
-
-
-    # for key in train_dataset:
-    #     print(key,len(train_dataset[key]))
-    #for _ in range(2):    
-    #    for batch, lengths in createBatches(train_dataset, 4):
-    #        if len(lengths)>3:
-    #            print(lengths)
 
        
