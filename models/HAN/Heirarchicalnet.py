@@ -27,7 +27,8 @@ def creatingDataset(fname,w2i):  # dictionary of list of tuples (rev,label)
             if length not in dataset:
                 dataset[length] = []
             encoded_review = text2tensor(temp,w2i)
-            dataset[length].append((encoded_review,label))
+            if len(encoded_review)>0:
+                dataset[length].append((encoded_review,label))
     return dataset
 
 
@@ -241,17 +242,20 @@ def ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size):
             return accuracy_score(true_labels,predicted_labels)
 
 
-def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=4, epochs=10, learning_rate=0.001):
+def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, epochs=5, learning_rate=0.001):
     wordEnc_optimizer = optim.Adam(wordEnc.parameters(), lr=learning_rate)
     sentEnc_optimizer = optim.Adam(sentEnc.parameters(), lr=learning_rate)
 
     criterion = nn.CrossEntropyLoss()
 
+    best_accuracy = 0
+    print('Training started...')
+
     for _ in range(epochs):
         data = createBatches(train_dataset,batch_size)
         count = 0
         for batch, lengths in data:
-            if len(lengths) > 2:
+            if len(lengths) > int(batch_size/8):
                 count+=1
                 sent, label = mergeSentences(batch)
                 label = torch.LongTensor(label)
@@ -301,7 +305,11 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=4, epo
 
         # calculate validation accuracy...
         accuracy = ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size)
-
+        
+        if accuracy>best_accuracy:
+            best_accuracy = accuracy
+            torch.save(wordEnc.state_dict(), 'wordEncoder_model.pt')
+            torch.save(sentEnc.state_dict(), 'sentEncoder_model.pt')
         print('completed epoch {}'.format(_))
         print('accuracy - {}'.format(accuracy))
 
@@ -311,9 +319,13 @@ if __name__=='__main__':
     with open('word2index.pickle','rb') as fs:
         w2i = pickle.load(fs)
 
-    train_dataset = creatingDataset('../Data/test_s.csv', w2i)
-    validation_dataset = creatingDataset('../Data/validation_s.csv',w2i)
-    
+    print('Loaded vocabulary - ',len(w2i))
+
+    train_dataset = creatingDataset('../Data/train.csv', w2i)
+    validation_dataset = creatingDataset('../Data/validation.csv',w2i)
+
+    print('Dataset creation complete')
+
     w_input_size = len(w2i)
     w_encoding_size = 75
     w_hidden_size = 50
