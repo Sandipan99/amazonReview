@@ -235,20 +235,13 @@ def ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size):
             sent_out = wordEnc(X, X_lengths, batch_s)
             sent_out = sent_out.squeeze()[mapped_index, :]
 
-            curr_length = lengths[0]
-
             review_batch = torch.Tensor().to(device)
 
             r = 0
             c = sent_out.shape[1]
             for l in lengths:
-                if l == curr_length:
-                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
-                    r += l
-                else:
-                    diff = curr_length - l
-                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :], torch.zeros(diff, c).to(device)))
-                    r += l
+                review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
+                r += l
 
             review_batch = review_batch.view(len(lengths), -1, c)
 
@@ -265,11 +258,11 @@ def ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size):
             #print(true_labels)
             #print(predicted_labels)
 
-            print(confusion_matrix(true_labels,predicted_labels))
-            return accuracy_score(true_labels,predicted_labels)
+    print(confusion_matrix(true_labels,predicted_labels))
+    return accuracy_score(true_labels,predicted_labels)
 
 
-def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, epochs=5, learning_rate=0.001):
+def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, epochs=10, learning_rate=0.001):
     wordEnc_optimizer = optim.Adam(wordEnc.parameters(), lr=learning_rate)
     sentEnc_optimizer = optim.Adam(sentEnc.parameters(), lr=learning_rate)
 
@@ -282,7 +275,7 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, e
         data = createBatches(train_dataset,batch_size)
         count = 0
         for batch, lengths in data:
-            if len(lengths) > int(batch_size/8):
+            if len(lengths) > int(batch_size/8) and len(set(lengths))==1:
                 count+=1
                 sent, label = mergeSentences(batch)
                 label = torch.LongTensor(label)
@@ -298,25 +291,19 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, e
                 sent_out = wordEnc(X, X_lengths, batch_s)
                 sent_out = sent_out.squeeze()[mapped_index, :]
 
-                curr_length = lengths[0]
+                #curr_length = lengths[0]
 
                 review_batch = torch.Tensor().to(device)
 
                 r = 0
                 c = sent_out.shape[1]
                 for l in lengths:
-                    if l == curr_length:
-                        review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
-                        r += l
-                    else:
-                        diff = curr_length - l
-                        review_batch = torch.cat((review_batch, sent_out[r:r + l, :], torch.zeros(diff, c).to(device)))
-                        r += l
-
+                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
+                    r += l
+                
                 review_batch = review_batch.view(len(lengths), -1, c)
 
                 review_lengths = torch.LongTensor(lengths).to(device)
-
                 output = sentEnc(review_batch, review_lengths , len(lengths))
 
                 loss = criterion(output.squeeze(), label)
@@ -352,8 +339,6 @@ if __name__=='__main__':
     validation_dataset = creatingDataset('../Data/validation.csv',w2i)
 
     print('Dataset creation complete')
-
-
     
     w_input_size = len(w2i)
     w_encoding_size = 75
