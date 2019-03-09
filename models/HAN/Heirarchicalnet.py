@@ -219,7 +219,7 @@ def ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size):
     predicted_labels = []
     data = createBatches(validation_dataset,batch_size)
     for batch, lengths in data:
-        if len(lengths) > 2:
+        if len(lengths) > 2 and len(set(lengths))==1:
             sent, label = mergeSentences(batch)
             true_labels += label
             label = torch.LongTensor(label)
@@ -304,6 +304,7 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, e
                 review_batch = review_batch.view(len(lengths), -1, c)
 
                 review_lengths = torch.LongTensor(lengths).to(device)
+    
                 output = sentEnc(review_batch, review_lengths , len(lengths))
 
                 loss = criterion(output.squeeze(), label)
@@ -316,6 +317,7 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, e
                 loss.backward()
                 sentEnc_optimizer.step()
                 wordEnc_optimizer.step()
+            
 
         # calculate validation accuracy...
         accuracy = ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size)
