@@ -25,49 +25,14 @@ def creatingDataset(fname,w2i):  # dictionary of list of tuples (rev,label)
             label = int(line[0])
             review = line[2:]
             temp = review.strip().split('.')
-            length = len(temp)
-            if length not in dataset:
-                dataset[length] = []
             encoded_review = text2tensor(temp,w2i)
-            if len(encoded_review)>0:
+            length = len(encoded_review)
+            if length not in dataset and length>0:
+                dataset[length] = []
+            if length>0:
                 dataset[length].append((encoded_review,label))
     return dataset
 
-
-#def createBatches(dataset, batch_size):  # generator implementation
-#    batch = []  # return a batch of datapoints based on batch_size
-#    lengths = list(dataset.keys())
-#    lengths.sort(reverse=True)
-#    size = 0
-#    sent_length = []
-#    for l in lengths:
-#        for doc in dataset[l]:
-#            if len(batch) > 0:
-#                curr_len = len(batch[-1][0])
-#            else:
-#                curr_len = l
-#            diff = curr_len - len(doc[0])
-#            if diff <= 2 and diff > 0:
-#                size += 1
-#                batch.append(doc)
-#                sent_length.append(len(doc[0]))
-#            elif diff == 0:
-#                batch.append(doc)
-#                sent_length.append(len(doc[0]))
-#                size += 1
-#            else:
-#                if len(batch) > 0:
-#                    yield (batch, sent_length)
-#                batch = [doc]
-#                sent_length = [len(doc[0])]
-#                size = 1
-
-#            if size == batch_size:
-#                yield (batch, sent_length)
-#                batch = []
-#                sent_length = []
-#                size = 0
-#    yield (batch, sent_length)
 
 def createBatches(dataset, batch_size):  # generator implementation
     batch = []  # return a batch of datapoints based on batch_size
