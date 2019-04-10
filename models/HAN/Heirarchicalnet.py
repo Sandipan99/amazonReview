@@ -1,15 +1,18 @@
+__author__ = 'Sandipan Sikdar'
+
 import torch
 import torch.nn as nn
 from torch import optim
 import numpy as np
 from torch.nn.utils import rnn
+import torch.nn.functional as F
 
-from preprocess import clean
 import itertools
 
 import pickle
+from sklearn.metrics import accuracy_score,confusion_matrix
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 def text2tensor(review,w2i):
     out = [[w2i[w] for w in sents.split()] for sents in review if len(sents)>0]
@@ -27,7 +30,7 @@ def creatingDataset(fname,w2i):  # dictionary of list of tuples (rev,label)
             length = len(encoded_review)
             if length not in dataset and length>0:
                 dataset[length] = []
-            if len(encoded_review)>0:
+            if length>0:
                 dataset[length].append((encoded_review,label))
     return dataset
 
@@ -35,37 +38,27 @@ def creatingDataset(fname,w2i):  # dictionary of list of tuples (rev,label)
 def createBatches(dataset, batch_size):  # generator implementation
     batch = []  # return a batch of datapoints based on batch_size
     lengths = list(dataset.keys())
-    lengths.sort(reverse=True)
+    lengths.sort()
     size = 0
     sent_length = []
-    for l in lengths:
+    
+    for l in lengths[:100]:
         for doc in dataset[l]:
-            if len(batch) > 0:
-                curr_len = len(batch[-1][0])
-            else:
-                curr_len = l
-            diff = curr_len - len(doc[0])
-            if diff <= 2 and diff > 0:
-                size += 1
-                batch.append(doc)
-                sent_length.append(len(doc[0]))
-            elif diff == 0:
-                batch.append(doc)
-                sent_length.append(len(doc[0]))
-                size += 1
-            else:
-                if len(batch) > 0:
-                    yield (batch, sent_length)
-                batch = [doc]
-                sent_length = [len(doc[0])]
-                size = 1
-
-            if size == batch_size:
-                yield (batch, sent_length)
+            batch.append(doc)
+            sent_length.append(len(doc[0]))
+            size+=1
+            if size==batch_size:
+                yield(batch,sent_length)
                 batch = []
                 sent_length = []
                 size = 0
-    yield (batch, sent_length)
+                
+        yield(batch,sent_length)
+        batch = []
+        sent_length = []
+        size = 0
+
+
 
 def mergeSentences(batch):
     sent = []
@@ -107,7 +100,7 @@ class wordEncoder(nn.Module):
 
         Y = torch.unbind(X, dim=0)
 
-        Y_1 = torch.Tensor()
+        Y_1 = torch.Tensor().to(device)
         for i in range(X_lengths.shape[0]):
             x = self.softmax(torch.sum(Y[i][:X_lengths[i].item()] * self.u_w, dim=1)).view(-1, 1)
             Y_1 = torch.cat((Y_1, torch.sum(H[i][:X_lengths[i].item()] * x, dim=0).view(1, 1, -1)), dim=1)
@@ -115,7 +108,7 @@ class wordEncoder(nn.Module):
         return Y_1
 
     def initHidden(self, batch_size):
-        return torch.zeros(2, batch_size, self.hidden_size)
+        return torch.zeros(2, batch_size, self.hidden_size).to(device)
 
 
 class sentenceEncoder(nn.Module):
@@ -148,7 +141,7 @@ class sentenceEncoder(nn.Module):
 
         Y = torch.unbind(X, dim=0)
 
-        Y_1 = torch.Tensor()
+        Y_1 = torch.Tensor().to(device)
         for i in range(X_lengths.shape[0]):
             x = self.softmax(torch.sum(Y[i][:X_lengths[i].item()] * self.u_s, dim=1)).view(-1, 1)
             Y_1 = torch.cat((Y_1, torch.sum(H[i][:X_lengths[i].item()] * x, dim=0).view(1, 1, -1)), dim=1)
@@ -159,7 +152,7 @@ class sentenceEncoder(nn.Module):
         return output
 
     def initHidden(self, batch_size):
-        return torch.zeros(2, batch_size, self.hidden_size)
+        return torch.zeros(2, batch_size, self.hidden_size).to(device)
 
 
 # concatenating sentences from all reviews in a batch and then sorting them based on length would change the order
@@ -186,62 +179,121 @@ def sortbylength(all_sent,all_sent_len):
     return all_sent[torch.LongTensor(indices),:],sorted_lengths,mapped_index
 
 
-def train(wordEnc, sentEnc, train_dataset, batch_size=64, epochs=10, learning_rate=0.001):
-    wordEnc_optimizer = optim.Adam(wordEnc.parameters(), lr=learning_rate)
-    sentEnc_optimizer = optim.Adam(sentEnc.parameters(), lr=learning_rate)
+def ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size):
 
-    criterion = nn.CrossEntropyLoss()
-
-    for _ in range(epochs):
-        for batch, lengths in createBatches(train_dataset, batch_size):
-            if len(lengths) < 16:
-                continue
-            sent, label = mergeSentences(batch, lengths)
+    true_labels = []
+    predicted_labels = []
+    data = createBatches(validation_dataset,batch_size)
+    for batch, lengths in data:
+        if len(lengths) > 2 and len(set(lengths))==1:
+            sent, label = mergeSentences(batch)
+            true_labels += label
             label = torch.LongTensor(label)
             sentence_length = [len(s) for s in sent]
             sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
             X = torch.from_numpy(sent)
             X_lengths = torch.LongTensor(sentence_length)
             X, X_lengths, mapped_index = sortbylength(X, X_lengths)
-            batch_size = len(sentence_length)
+            batch_s = len(sentence_length)
 
             X, X_lengths, label = X.to(device), X_lengths.to(device), label.to(device)
 
-            sent_out = wordEnc(X, X_lengths, batch_size)
+            sent_out = wordEnc(X, X_lengths, batch_s)
             sent_out = sent_out.squeeze()[mapped_index, :]
 
-            curr_length = lengths[0]
-
-            review_batch = torch.Tensor()
+            review_batch = torch.Tensor().to(device)
 
             r = 0
             c = sent_out.shape[1]
             for l in lengths:
-                if l == curr_length:
-                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
-                    r += l
-                else:
-                    diff = curr_length - l
-                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :], torch.zeros(diff, c)))
-                    r += l
+                review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
+                r += l
 
             review_batch = review_batch.view(len(lengths), -1, c)
-
-            review_batch = review_batch.to(device)
 
             review_lengths = torch.LongTensor(lengths).to(device)
 
             output = sentEnc(review_batch, review_lengths , len(lengths))
 
-            loss = criterion(output.squeeze(), label)
+            output = output.squeeze()
 
-            print(loss)
+            output = F.softmax(output,dim=1)
+            value,lbl = torch.max(output,1)
+            predicted_labels += lbl.cpu().numpy().tolist()
 
-            wordEnc_optimizer.zero_grad()
-            sentEnc_optimizer.zero_grad()
-            loss.backward()
-            sentEnc_optimizer.step()
-            wordEnc_optimizer.step()
+            #print(true_labels)
+            #print(predicted_labels)
+
+    print(confusion_matrix(true_labels,predicted_labels))
+    return accuracy_score(true_labels,predicted_labels)
+
+
+def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, epochs=10, learning_rate=0.001):
+    wordEnc_optimizer = optim.Adam(wordEnc.parameters(), lr=learning_rate)
+    sentEnc_optimizer = optim.Adam(sentEnc.parameters(), lr=learning_rate)
+
+    criterion = nn.CrossEntropyLoss()
+
+    best_accuracy = 0
+    print('Training started...')
+
+    for _ in range(epochs):
+        data = createBatches(train_dataset,batch_size)
+        count = 0
+        for batch, lengths in data:
+            if len(lengths) > int(batch_size/8) and len(set(lengths))==1:
+                count+=1
+                sent, label = mergeSentences(batch)
+                label = torch.LongTensor(label)
+                sentence_length = [len(s) for s in sent]
+                sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
+                X = torch.from_numpy(sent)
+                X_lengths = torch.LongTensor(sentence_length)
+                X, X_lengths, mapped_index = sortbylength(X, X_lengths)
+                batch_s = len(sentence_length)
+
+                X, X_lengths, label = X.to(device), X_lengths.to(device), label.to(device)
+
+                sent_out = wordEnc(X, X_lengths, batch_s)
+                sent_out = sent_out.squeeze()[mapped_index, :]
+
+                #curr_length = lengths[0]
+
+                review_batch = torch.Tensor().to(device)
+
+                r = 0
+                c = sent_out.shape[1]
+                for l in lengths:
+                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
+                    r += l
+                
+                review_batch = review_batch.view(len(lengths), -1, c)
+
+                review_lengths = torch.LongTensor(lengths).to(device)
+    
+                output = sentEnc(review_batch, review_lengths , len(lengths))
+
+                loss = criterion(output.squeeze(), label)
+
+                if count%100==0:
+                    print('epoch - {}, batch count - {}, loss - {}'.format(_,count,loss))
+
+                wordEnc_optimizer.zero_grad()
+                sentEnc_optimizer.zero_grad()
+                loss.backward()
+                sentEnc_optimizer.step()
+                wordEnc_optimizer.step()
+            
+
+        # calculate validation accuracy...
+        accuracy = ValidationAccuracy(wordEnc,sentEnc,validation_dataset,batch_size)
+        
+        if accuracy>best_accuracy:
+            best_accuracy = accuracy
+            torch.save(wordEnc.state_dict(), 'wordEncoder_model.pt')
+            torch.save(sentEnc.state_dict(), 'sentEncoder_model.pt')
+        print('completed epoch {}'.format(_))
+        print('accuracy - {}'.format(accuracy))
 
 
 if __name__=='__main__':
@@ -249,9 +301,13 @@ if __name__=='__main__':
     with open('word2index.pickle','rb') as fs:
         w2i = pickle.load(fs)
 
-    train_dataset = creatingDataset('../Data/test_s.csv', w2i)
-    validation_dataset = creatingDataset('../Data/validation_s.csv',w2i)
+    print('Loaded vocabulary - ',len(w2i))
 
+    train_dataset = creatingDataset('../Data/train.csv', w2i)
+    validation_dataset = creatingDataset('../Data/validation.csv',w2i)
+
+    print('Dataset creation complete')
+    
     w_input_size = len(w2i)
     w_encoding_size = 75
     w_hidden_size = 50
@@ -268,5 +324,7 @@ if __name__=='__main__':
     wordEnc.to(device)
     sentEnc.to(device)
 
-    train(wordEnc,sentEnc,train_dataset)
+    train(wordEnc,sentEnc,train_dataset,validation_dataset)
+    
 
+       
