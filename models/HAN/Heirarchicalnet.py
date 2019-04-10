@@ -15,6 +15,7 @@ def text2tensor(review,w2i):
     out = [[w2i[w] for w in sents.split()] for sents in review if len(sents)>0]
     return out
 
+
 def creatingDataset(fname,w2i):  # dictionary of list of tuples (rev,label)
     dataset = {}
     with open(fname+'_cleaned') as fs:
@@ -22,11 +23,12 @@ def creatingDataset(fname,w2i):  # dictionary of list of tuples (rev,label)
             label = int(line[0])
             review = line[2:]
             temp = review.strip().split('.')
-            length = len(temp)
-            if length not in dataset:
-                dataset[length] = []
             encoded_review = text2tensor(temp,w2i)
-            dataset[length].append((encoded_review,label))
+            length = len(encoded_review)
+            if length not in dataset and length>0:
+                dataset[length] = []
+            if len(encoded_review)>0:
+                dataset[length].append((encoded_review,label))
     return dataset
 
 
