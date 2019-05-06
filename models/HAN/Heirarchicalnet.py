@@ -309,7 +309,7 @@ if __name__=='__main__':
     print('Dataset creation complete')
     
     w_input_size = len(w2i)
-    w_encoding_size = 75
+    w_encoding_size = 100
     w_hidden_size = 50
     w_output_size = 100
 
