@@ -6,7 +6,7 @@ from torch import optim
 import numpy as np
 from torch.nn.utils import rnn
 import torch.nn.functional as F
-
+from nltk.tokenize import word_tokenize, sent_tokenize
 import itertools
 
 import pickle
