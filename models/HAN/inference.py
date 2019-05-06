@@ -13,51 +13,60 @@ from sklearn.metrics import accuracy_score,confusion_matrix
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
+
+
 def inference(wordEnc,sentEnc,validation_dataset,batch_size):
+
+    wordEnc.to(device)
+    sentEnc.to(device)
+
+    wordEnc.eval()
+    sentEnc.eval()
 
     true_labels = []
     predicted_labels = []
     data = createBatches(validation_dataset,batch_size)
-    for batch, lengths in data:
-        if len(lengths) > 2 and len(set(lengths))==1:
-            sent, label = mergeSentences(batch)
-            true_labels += label
-            label = torch.LongTensor(label)
-            sentence_length = [len(s) for s in sent]
-            sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
-            X = torch.from_numpy(sent)
-            X_lengths = torch.LongTensor(sentence_length)
-            X, X_lengths, mapped_index = sortbylength(X, X_lengths)
-            batch_s = len(sentence_length)
+    with torch.no_grad():
+        for batch, lengths in data:
+            if len(lengths) > 2 and len(set(lengths))==1:
+                sent, label = mergeSentences(batch)
+                true_labels += label
+                label = torch.LongTensor(label)
+                sentence_length = [len(s) for s in sent]
+                sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
+                X = torch.from_numpy(sent)
+                X_lengths = torch.LongTensor(sentence_length)
+                X, X_lengths, mapped_index = sortbylength(X, X_lengths)
+                batch_s = len(sentence_length)
 
-            X, X_lengths, label = X.to(device), X_lengths.to(device), label.to(device)
+                X, X_lengths, label = X.to(device), X_lengths.to(device), label.to(device)
 
-            sent_out = wordEnc(X, X_lengths, batch_s)
-            sent_out = sent_out.squeeze()[mapped_index, :]
+                sent_out = wordEnc(X, X_lengths, batch_s)
+                sent_out = sent_out.squeeze()[mapped_index, :]
 
-            review_batch = torch.Tensor().to(device)
+                review_batch = torch.Tensor().to(device)
 
-            r = 0
-            c = sent_out.shape[1]
-            for l in lengths:
-                review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
-                r += l
-        
+                r = 0
+                c = sent_out.shape[1]
+                for l in lengths:
+                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
+                    r += l
             
-            review_batch = review_batch.view(len(lengths), -1, c)
+                
+                review_batch = review_batch.view(len(lengths), -1, c)
 
-            review_lengths = torch.LongTensor(lengths).to(device)
+                review_lengths = torch.LongTensor(lengths).to(device)
 
-            output = sentEnc(review_batch, review_lengths , len(lengths))
+                output = sentEnc(review_batch, review_lengths , len(lengths))
 
-            output = output.squeeze()
+                output = output.squeeze()
 
-            output = F.softmax(output,dim=1)
-            value,lbl = torch.max(output,1)
-            predicted_labels += lbl.cpu().numpy().tolist()
+                output = F.softmax(output,dim=1)
+                value,lbl = torch.max(output,1)
+                predicted_labels += lbl.cpu().numpy().tolist()
 
-            #print(true_labels)
-            #print(predicted_labels)
+                #print(true_labels)
+                #print(predicted_labels)
 
     print(confusion_matrix(true_labels,predicted_labels))
     return accuracy_score(true_labels,predicted_labels)
@@ -89,8 +98,5 @@ if __name__=='__main__':
 
     wordEnc.load_state_dict(torch.load('wordEncoder_model.pt'))
     sentEnc.load_state_dict(torch.load('sentEncoder_model.pt'))
-
-    wordEnc.to(device)
-    sentEnc.to(device)
 
     print(inference(wordEnc,sentEnc,validation_dataset,128))
