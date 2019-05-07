@@ -8,18 +8,19 @@ class MySentences():
 
     def __iter__(self):
         for file in self.fname:
-            with open(file) as fs:
+            with open(file+'_filtered') as fs:
                 for line in fs:
                     label = line[0]
                     review = line[2:]
-                    sents = [[w for w in sent.split()] for sent in review.strip().split('.') if len(sent)>0]
-                    yield sents
+                    for sent in review.strip().split('.'):
+                        if len(sent)>0:
+                            yield [w for w in sent.split()]
 
 
 
 if __name__=="__main__":
-    fname = ['../Data/train_s.csv','../Data/test_s.csv']
+    fname = ['../../../amazonUser/User_level_train.csv','../../../amazonUser/User_level_validation.csv']
     sentences = MySentences(fname)
-    model = Word2Vec(sentences,iter=20,size=200,workers=4) # keep min_count to default value of 5, dimension of vector =
+    model = Word2Vec(sentences,iter=15,size=200,workers=4) # keep min_count to default value of 5, dimension of vector =
     #  200
     model.save('amazonWord2Vec')
