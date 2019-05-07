@@ -1,6 +1,6 @@
 from collections import Counter
 from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
+from nltk.tokenize import word_tokenize, sent_tokenize
 from nltk.stem import PorterStemmer
 import string
 import pickle
@@ -51,7 +51,7 @@ def obtainKFrequentWords(k='',**kwargs): # obtain w2i without stemming or stopwo
                 words = [word.lower() for word in word_tokenize(review) if word.isalpha()]
                 for w in words:
                     vocabulary[w]+=1
-                if count%100000==0:
+                if count%1000000==0:
                     print('processed reviews: ',count)
 
     count = 1
@@ -71,17 +71,22 @@ def filterByFrequency(w2i,**kwargs): # filter the reviews with only words with f
     for label,fname in kwargs.items():
         with open(fname+'_filtered','w') as ft:
             with open(fname) as fs:
-                label = line[0]
-                rev_or = line[2:]
                 for line in fs:
+                    label = line[0]
+                    rev_or = line[2:]
                     rev_fil = '.'.join([' '.join([w if w in w2i else 'unk' for w in word_tokenize(sent) if w.isalpha()]) for sent in sent_tokenize(rev_or.lower())])
                     ft.write(label+','+rev_fil)
-                    ft.write()
+                    ft.write('\n')
 
 
 if __name__ == '__main__':
 
-    w2i = obtainKFrequentWords(k=5,train_file='../../../amazonUser/User_level_train.csv', validation_file='../../../amazonUser/User_level_validation.csv')
-    print('vocabulary size - ',len(w2i))
-    with open('word2index.pickle','wb') as ft:
-        pickle.dump(w2i,ft)
+    #w2i = obtainKFrequentWords(k=5,train_file='../../../amazonUser/User_level_train.csv', validation_file='../../../amazonUser/User_level_validation.csv')
+    #print('vocabulary size - ',len(w2i))
+    #with open('word2index.pickle','wb') as ft:
+    #    pickle.dump(w2i,ft)
+
+    with open('word2index.pickle','rb') as fs:
+        w2i = pickle.load(fs)
+    print('word2index dictionary loaded')    
+    filterByFrequency(w2i,train_file='../../../amazonUser/User_level_train.csv', validation_file='../../../amazonUser/User_level_validation.csv')   

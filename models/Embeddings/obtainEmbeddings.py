@@ -10,7 +10,9 @@ class MySentences():
         for file in self.fname:
             with open(file) as fs:
                 for line in fs:
-                    sents = [[ for w in sent.split()] for sent in line.strip().split('.') if len(sent)>0]
+                    label = line[0]
+                    review = line[2:]
+                    sents = [[w for w in sent.split()] for sent in review.strip().split('.') if len(sent)>0]
                     yield sents
 
 
