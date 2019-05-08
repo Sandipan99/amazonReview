@@ -21,6 +21,6 @@ class MySentences():
 if __name__=="__main__":
     fname = ['../../../amazonUser/User_level_train.csv','../../../amazonUser/User_level_validation.csv']
     sentences = MySentences(fname)
-    model = Word2Vec(sentences,iter=15,size=200,workers=4) # keep min_count to default value of 5, dimension of vector =
+    model = Word2Vec(sentences,iter=15,size=200,workers=10) # keep min_count to default value of 5, dimension of vector =
     #  200
     model.save('amazonWord2Vec')

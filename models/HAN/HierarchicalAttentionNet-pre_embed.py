@@ -26,7 +26,7 @@ def text2tensor(review, w2i):
 
 def creatingDataset(fname, w2i):  # dictionary of list of tuples (rev,label)
     dataset = {}
-    with open(fname + '_cleaned') as fs:
+    with open(fname + '_filtered') as fs:
         for line in fs:
             label = int(line[0])
             review = line[2:]
@@ -65,12 +65,12 @@ def createBatches(dataset, batch_size):  # generator implementation
 
 def createEmbeddingMatrix(model,w2i,embedding_size):
 
-    matrix = np.zeros((len(w2i),embedding_size))
+    matrix = np.zeros((len(w2i)+1,embedding_size))
     for word,index in w2i.items():
         index = w2i[word]
         matrix[index] = model[word]
 
-    return matrix
+    return torch.from_numpy(matrix)
 
 
 def mergeSentences(batch):
@@ -306,8 +306,8 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, e
 
         if accuracy > best_accuracy:
             best_accuracy = accuracy
-            torch.save(wordEnc.state_dict(), 'wordEncoder_model.pt')
-            torch.save(sentEnc.state_dict(), 'sentEncoder_model.pt')
+            torch.save(wordEnc.state_dict(), 'wordEncoder_model-pre_embed.pt')
+            torch.save(sentEnc.state_dict(), 'sentEncoder_model-pre_embed.pt')
         print('completed epoch {}'.format(_))
         print('accuracy - {}'.format(accuracy))
 
@@ -318,17 +318,21 @@ if __name__ == '__main__':
 
     print('Loaded vocabulary - ', len(w2i))
 
-    train_dataset = creatingDataset('../Data/train.csv', w2i)
-    validation_dataset = creatingDataset('../Data/validation.csv', w2i)
+    train_dataset = creatingDataset('../../../amazonUser/User_level_train_1M.csv', w2i)
+    validation_dataset = creatingDataset('../../../amazonUser/User_level_validation_10k.csv', w2i)
 
     print('Dataset creation complete')
 
-    model = gensim.models.Word2Vec.load(model)
+    model = gensim.models.Word2Vec.load('../Embeddings/amazonWord2Vec')
 
-    matrix = createEmbeddingMatrix(model,w2i,embedding_size)
+    w_input_size,w_encoding_size = model.wv.vectors.shape
 
-    w_input_size = len(w2i)
-    w_encoding_size = 200
+
+    matrix = createEmbeddingMatrix(model,w2i,w_encoding_size)
+
+    print('embedding matrix obtained.')
+    #w_input_size = len(w2i)
+    #w_encoding_size = 200
     w_hidden_size = 50
     w_output_size = 100
 
@@ -337,8 +341,9 @@ if __name__ == '__main__':
     s_repr_size = 2 * w_hidden_size
     s_output_size = 2
 
+    padding_idx = 0
 
-    wordEnc = wordEncoder(model, w2i, w_encoding_size, w_hidden_size, w_output_size, 0)
+    wordEnc = wordEncoder(matrix, w_input_size+1, w_encoding_size, w_hidden_size, w_output_size, padding_idx)
     sentEnc = sentenceEncoder(s_input_size, s_hidden_size, s_repr_size, s_output_size)
 
     wordEnc.to(device)
