@@ -19,15 +19,17 @@ def text2tensor(review,w2i):
     return out
 
 
-def creatingDataset(fname,w2i):  # dictionary of list of tuples (rev,label)
+def creatingDataset(fname,w2i,max_length=15):  # dictionary of list of tuples (rev,label)
     dataset = {}
-    with open(fname+'_cleaned') as fs:
+    with open(fname+'_filtered') as fs:
         for line in fs:
             label = int(line[0])
             review = line[2:]
             temp = review.strip().split('.')
             encoded_review = text2tensor(temp,w2i)
             length = len(encoded_review)
+            if length>max_length:
+                continue
             if length not in dataset and length>0:
                 dataset[length] = []
             if length>0:

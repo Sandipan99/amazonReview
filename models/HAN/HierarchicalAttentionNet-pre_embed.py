@@ -24,7 +24,7 @@ def text2tensor(review, w2i):
     return out
 
 
-def creatingDataset(fname, w2i):  # dictionary of list of tuples (rev,label)
+def creatingDataset(fname, w2i, max_length=15):  # dictionary of list of tuples (rev,label) # consider reviews <= max_length 
     dataset = {}
     with open(fname + '_filtered') as fs:
         for line in fs:
@@ -33,6 +33,8 @@ def creatingDataset(fname, w2i):  # dictionary of list of tuples (rev,label)
             temp = review.strip().split('.')
             encoded_review = text2tensor(temp, w2i)
             length = len(encoded_review)
+            if length>max_length:
+                continue
             if length not in dataset and length > 0:
                 dataset[length] = []
             if length > 0:
@@ -47,7 +49,7 @@ def createBatches(dataset, batch_size):  # generator implementation
     size = 0
     sent_length = []
 
-    for l in lengths[:100]:
+    for l in lengths:
         for doc in dataset[l]:
             batch.append(doc)
             sent_length.append(len(doc[0]))
@@ -201,42 +203,47 @@ def ValidationAccuracy(wordEnc, sentEnc, validation_dataset, batch_size):
     true_labels = []
     predicted_labels = []
     data = createBatches(validation_dataset, batch_size)
-    for batch, lengths in data:
-        if len(lengths) > 2 and len(set(lengths)) == 1:
-            sent, label = mergeSentences(batch)
-            true_labels += label
-            label = torch.LongTensor(label)
-            sentence_length = [len(s) for s in sent]
-            sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
-            X = torch.from_numpy(sent)
-            X_lengths = torch.LongTensor(sentence_length)
-            X, X_lengths, mapped_index = sortbylength(X, X_lengths)
-            batch_s = len(sentence_length)
 
-            X, X_lengths, label = X.to(device), X_lengths.to(device), label.to(device)
+    wordEnc.eval()
+    sentEnc.eval()
 
-            sent_out = wordEnc(X, X_lengths, batch_s)
-            sent_out = sent_out.squeeze()[mapped_index, :]
+    with torch.no_grad():
+        for batch, lengths in data:
+            if len(lengths) > 2 and len(set(lengths)) == 1:
+                sent, label = mergeSentences(batch)
+                true_labels += label
+                label = torch.LongTensor(label)
+                sentence_length = [len(s) for s in sent]
+                sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
+                X = torch.from_numpy(sent)
+                X_lengths = torch.LongTensor(sentence_length)
+                X, X_lengths, mapped_index = sortbylength(X, X_lengths)
+                batch_s = len(sentence_length)
 
-            review_batch = torch.Tensor().to(device)
+                X, X_lengths, label = X.to(device), X_lengths.to(device), label.to(device)
 
-            r = 0
-            c = sent_out.shape[1]
-            for l in lengths:
-                review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
-                r += l
+                sent_out = wordEnc(X, X_lengths, batch_s)
+                sent_out = sent_out.squeeze()[mapped_index, :]
 
-            review_batch = review_batch.view(len(lengths), -1, c)
+                review_batch = torch.Tensor().to(device)
 
-            review_lengths = torch.LongTensor(lengths).to(device)
+                r = 0
+                c = sent_out.shape[1]
+                for l in lengths:
+                    review_batch = torch.cat((review_batch, sent_out[r:r + l, :]))
+                    r += l
 
-            output = sentEnc(review_batch, review_lengths, len(lengths))
+                review_batch = review_batch.view(len(lengths), -1, c)
 
-            output = output.squeeze()
+                review_lengths = torch.LongTensor(lengths).to(device)
 
-            output = F.softmax(output, dim=1)
-            value, lbl = torch.max(output, 1)
-            predicted_labels += lbl.cpu().numpy().tolist()
+                output = sentEnc(review_batch, review_lengths, len(lengths))
+
+                output = output.squeeze()
+
+                output = F.softmax(output, dim=1)
+                value, lbl = torch.max(output, 1)
+                predicted_labels += lbl.cpu().numpy().tolist()
 
             # print(true_labels)
             # print(predicted_labels)
@@ -301,6 +308,7 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, e
                 sentEnc_optimizer.step()
                 wordEnc_optimizer.step()
 
+        torch.cuda.empty_cache()
         # calculate validation accuracy...
         accuracy = ValidationAccuracy(wordEnc, sentEnc, validation_dataset, batch_size)
 
@@ -318,11 +326,20 @@ if __name__ == '__main__':
 
     print('Loaded vocabulary - ', len(w2i))
 
-    train_dataset = creatingDataset('../../../amazonUser/User_level_train_1M.csv', w2i)
-    validation_dataset = creatingDataset('../../../amazonUser/User_level_validation_10k.csv', w2i)
+    max_length = 15
+
+    train_dataset = creatingDataset('../../../amazonUser/User_level_train_1M.csv', w2i,max_length = max_length)
+    validation_dataset = creatingDataset('../../../amazonUser/User_level_validation_10k.csv', w2i, max_length = max_length)
+
+    lengths = list(train_dataset.keys())
+    lengths.sort()
+    print('max_length: ',lengths[-1])
+    print('length array size: ',len(lengths))
+
 
     print('Dataset creation complete')
 
+    '''
     model = gensim.models.Word2Vec.load('../Embeddings/amazonWord2Vec')
 
     w_input_size,w_encoding_size = model.wv.vectors.shape
@@ -351,5 +368,5 @@ if __name__ == '__main__':
 
     train(wordEnc, sentEnc, train_dataset, validation_dataset)
 
-
+    '''
 
