@@ -19,9 +19,10 @@ import gensim
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 
-def text2tensor(review, w2i):
+def text2tensor(review, w2i, max_sent_length = 30):
     out = [[w2i[w] for w in sents.split()] for sents in review if len(sents) > 0]
-    return out
+    out_f = [r[:max_sent_length] for r in out]
+    return out_f
 
 
 def creatingDataset(fname, w2i, max_length=15):  # dictionary of list of tuples (rev,label) # consider reviews <= max_length 
@@ -204,9 +205,6 @@ def ValidationAccuracy(wordEnc, sentEnc, validation_dataset, batch_size):
     predicted_labels = []
     data = createBatches(validation_dataset, batch_size)
 
-    wordEnc.eval()
-    sentEnc.eval()
-
     with torch.no_grad():
         for batch, lengths in data:
             if len(lengths) > 2 and len(set(lengths)) == 1:
@@ -308,9 +306,10 @@ def train(wordEnc, sentEnc, train_dataset, validation_dataset, batch_size=128, e
                 sentEnc_optimizer.step()
                 wordEnc_optimizer.step()
 
-        torch.cuda.empty_cache()
         # calculate validation accuracy...
         accuracy = ValidationAccuracy(wordEnc, sentEnc, validation_dataset, batch_size)
+
+        torch.cuda.empty_cache()
 
         if accuracy > best_accuracy:
             best_accuracy = accuracy
@@ -326,20 +325,11 @@ if __name__ == '__main__':
 
     print('Loaded vocabulary - ', len(w2i))
 
-    max_length = 15
-
-    train_dataset = creatingDataset('../../../amazonUser/User_level_train_1M.csv', w2i,max_length = max_length)
-    validation_dataset = creatingDataset('../../../amazonUser/User_level_validation_10k.csv', w2i, max_length = max_length)
-
-    lengths = list(train_dataset.keys())
-    lengths.sort()
-    print('max_length: ',lengths[-1])
-    print('length array size: ',len(lengths))
-
+    train_dataset = creatingDataset('../../../amazonUser/User_level_train.csv', w2i)
+    validation_dataset = creatingDataset('../../../amazonUser/User_level_validation.csv', w2i)
 
     print('Dataset creation complete')
 
-    '''
     model = gensim.models.Word2Vec.load('../Embeddings/amazonWord2Vec')
 
     w_input_size,w_encoding_size = model.wv.vectors.shape
@@ -367,6 +357,4 @@ if __name__ == '__main__':
     sentEnc.to(device)
 
     train(wordEnc, sentEnc, train_dataset, validation_dataset)
-
-    '''
 
