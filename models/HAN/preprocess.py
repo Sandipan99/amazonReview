@@ -78,6 +78,20 @@ def filterByFrequency(w2i,**kwargs): # filter the reviews with only words with f
                     ft.write(label+','+rev_fil)
                     ft.write('\n')
 
+def filterByFrequencyIDs(w2i,**kwargs): # same function as filterByFrequency but the ids of the reviewers are present
+    
+    for label,fname in kwargs.items():
+        with open(fname+'_filtered','w') as ft:
+            with open(fname) as fs:
+                for line in fs:
+                    line = line.strip() 
+                    x = line.find(',')
+                    id_ = line[:x]
+                    label = line[-1]
+                    rev_or = line[x+1:-2]
+                    rev_fil = '.'.join([' '.join([w if w in w2i else 'unk' for w in word_tokenize(sent) if w.isalpha()]) for sent in sent_tokenize(rev_or.lower())])
+                    ft.write(id_+','+rev_fil+','+label)
+                    ft.write('\n')
 
 if __name__ == '__main__':
 
@@ -89,4 +103,4 @@ if __name__ == '__main__':
     with open('word2index.pickle','rb') as fs:
         w2i = pickle.load(fs)
     print('word2index dictionary loaded')    
-    filterByFrequency(w2i,train_file='../../../amazonUser/User_level_train.csv', validation_file='../../../amazonUser/User_level_validation.csv')   
+    filterByFrequencyIDs(w2i,test_file='../../../amazonUser/User_level_test_with_id.csv')   
