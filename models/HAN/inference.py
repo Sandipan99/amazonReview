@@ -4,7 +4,7 @@ from torch import optim
 import numpy as np
 from torch.nn.utils import rnn
 import torch.nn.functional as F
-from Heirarchicalnet import creatingDataset,createBatches,mergeSentences,sortbylength,wordEncoder,sentenceEncoder
+from Heirarchicalnet import createBatches,sortbylength,wordEncoder,sentenceEncoder,createEmbeddingMatrix
 import sys
 import itertools
 
@@ -13,7 +13,35 @@ from sklearn.metrics import accuracy_score,confusion_matrix
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
+def creatingDatasetIDs(fname, w2i, max_length=15):
+    dataset={}
+    with open(fname + '_filtered') as fs:
+        for line in fs:
+            line = line.strip()
+            x = line.find(',')
+            id_ = line[:x]
+            label = int(line[-1])
+            review = line[x:-2]
+            temp = review.strip().split('.')
+            encoded_review = text2tensor(temp, w2i)
+            length = len(encoded_review)
+            if length>max_length:
+                continue
+            if length not in dataset and length > 0:
+                dataset[length] = []
+            if length > 0:
+                dataset[length].append((encoded_review, label, id_))
+    return dataset
 
+def mergeSentences(batch):
+    sent = []
+    label = []
+    rev_id = []
+    for review, l, _id in batch:
+        sent += review
+        label.append(l)
+        rev_id.append(id_)
+    return sent, label, rev_d
 
 def inference(wordEnc,sentEnc,validation_dataset,batch_size):
 
@@ -25,12 +53,19 @@ def inference(wordEnc,sentEnc,validation_dataset,batch_size):
 
     true_labels = []
     predicted_labels = []
+    review_id = []
     data = createBatches(validation_dataset,batch_size)
+
+    ft = open('output_han_amazon.csv')
+    ft.write('TrueLabel','PredictedLabel','ReviewerId')
+    ft.write('\n')
+
     with torch.no_grad():
         for batch, lengths in data:
             if len(lengths) > 2 and len(set(lengths))==1:
-                sent, label = mergeSentences(batch)
+                sent, label, id_ = mergeSentences(batch)
                 true_labels += label
+                review_id += id_
                 label = torch.LongTensor(label)
                 sentence_length = [len(s) for s in sent]
                 sent = np.array(list(itertools.zip_longest(*sent, fillvalue=0))).T
@@ -64,9 +99,12 @@ def inference(wordEnc,sentEnc,validation_dataset,batch_size):
                 output = F.softmax(output,dim=1)
                 value,lbl = torch.max(output,1)
                 predicted_labels += lbl.cpu().numpy().tolist()
+    
+    for t_l,p_l,id_ in zip(true_labels,predicted_labels,review_id):
+        ft.write(str(t_l)+','+str(p_l)+','+str(id_))
+        ft.write('\n')
 
-                #print(true_labels)
-                #print(predicted_labels)
+    ft.close()
 
     print(confusion_matrix(true_labels,predicted_labels))
     return accuracy_score(true_labels,predicted_labels)
@@ -79,12 +117,20 @@ if __name__=='__main__':
 
     print('Loaded vocabulary - ',len(w2i))
 
-    validation_dataset = creatingDataset('../Data/validation.csv',w2i)
+    test_dataset = creatingDataset('../../../amazonUser/User_level_test_with_id.csv',w2i)
 
     print('Dataset creation complete')
 
-    w_input_size = len(w2i)
-    w_encoding_size = 75
+    model = gensim.models.Word2Vec.load('../Embeddings/amazonWord2Vec')
+
+    w_input_size,w_encoding_size = model.wv.vectors.shape
+
+    matrix = createEmbeddingMatrix(model,w2i,w_encoding_size)
+
+    print('embedding matrix obtained.')
+
+    #w_input_size = len(w2i)
+    #w_encoding_size = 75
     w_hidden_size = 50
     w_output_size = 100
 
