@@ -7,6 +7,7 @@ import torch.nn.functional as F
 from Heirarchicalnet import createBatches,sortbylength,wordEncoder,sentenceEncoder,text2tensor
 import sys
 import itertools
+import gensim
 
 import pickle
 from sklearn.metrics import accuracy_score,confusion_matrix
