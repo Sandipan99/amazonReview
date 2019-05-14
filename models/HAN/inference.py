@@ -4,7 +4,7 @@ from torch import optim
 import numpy as np
 from torch.nn.utils import rnn
 import torch.nn.functional as F
-from Heirarchicalnet import createBatches,sortbylength,wordEncoder,sentenceEncoder,createEmbeddingMatrix
+from Heirarchicalnet import createBatches,sortbylength,wordEncoder,sentenceEncoder,text2tensor
 import sys
 import itertools
 
@@ -12,6 +12,15 @@ import pickle
 from sklearn.metrics import accuracy_score,confusion_matrix
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+
+def createEmbeddingMatrix(model,w2i,embedding_size):
+
+    matrix = np.zeros((len(w2i)+1,embedding_size))
+    for word,index in w2i.items():
+        index = w2i[word]
+        matrix[index] = model[word]
+
+    return torch.from_numpy(matrix)
 
 def creatingDatasetIDs(fname, w2i, max_length=15):
     dataset={}
@@ -21,8 +30,8 @@ def creatingDatasetIDs(fname, w2i, max_length=15):
             x = line.find(',')
             id_ = line[:x]
             label = int(line[-1])
-            review = line[x:-2]
-            temp = review.strip().split('.')
+            review = line[x+1:-2]
+            temp = review.split('.')
             encoded_review = text2tensor(temp, w2i)
             length = len(encoded_review)
             if length>max_length:
@@ -41,7 +50,7 @@ def mergeSentences(batch):
         sent += review
         label.append(l)
         rev_id.append(id_)
-    return sent, label, rev_d
+    return sent, label, rev_id
 
 def inference(wordEnc,sentEnc,validation_dataset,batch_size):
 
@@ -117,7 +126,7 @@ if __name__=='__main__':
 
     print('Loaded vocabulary - ',len(w2i))
 
-    test_dataset = creatingDataset('../../../amazonUser/User_level_test_with_id.csv',w2i)
+    test_dataset = creatingDatasetIDs('../../../amazonUser/User_level_test_with_id.csv',w2i)
 
     print('Dataset creation complete')
 
