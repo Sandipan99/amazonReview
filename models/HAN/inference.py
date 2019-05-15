@@ -4,7 +4,7 @@ from torch import optim
 import numpy as np
 from torch.nn.utils import rnn
 import torch.nn.functional as F
-from Heirarchicalnet import createBatches,sortbylength,wordEncoder,sentenceEncoder,text2tensor
+from HierarchicalAttentionNet_pre_embed import createBatches,sortbylength,wordEncoder,sentenceEncoder,text2tensor,createEmbeddingMatrix
 import sys
 import itertools
 import gensim
@@ -13,15 +13,6 @@ import pickle
 from sklearn.metrics import accuracy_score,confusion_matrix
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
-
-def createEmbeddingMatrix(model,w2i,embedding_size):
-
-    matrix = np.zeros((len(w2i)+1,embedding_size))
-    for word,index in w2i.items():
-        index = w2i[word]
-        matrix[index] = model[word]
-
-    return torch.from_numpy(matrix)
 
 def creatingDatasetIDs(fname, w2i, max_length=15):
     dataset={}
@@ -47,7 +38,7 @@ def mergeSentences(batch):
     sent = []
     label = []
     rev_id = []
-    for review, l, _id in batch:
+    for review, l, id_ in batch:
         sent += review
         label.append(l)
         rev_id.append(id_)
@@ -66,8 +57,8 @@ def inference(wordEnc,sentEnc,validation_dataset,batch_size):
     review_id = []
     data = createBatches(validation_dataset,batch_size)
 
-    ft = open('output_han_amazon.csv')
-    ft.write('TrueLabel','PredictedLabel','ReviewerId')
+    ft = open('output_han_amazon.csv','w')
+    ft.write('TrueLabel,PredictedLabel,ReviewerId')
     ft.write('\n')
 
     with torch.no_grad():
@@ -149,10 +140,12 @@ if __name__=='__main__':
     s_repr_size = 2*w_hidden_size
     s_output_size = 2
 
-    wordEnc = wordEncoder(w_input_size,w_encoding_size,w_hidden_size,w_output_size,0)
+    padding_idx = 0
+
+    wordEnc = wordEncoder(matrix,w_input_size+1,w_encoding_size,w_hidden_size,w_output_size,padding_idx)
     sentEnc = sentenceEncoder(s_input_size,s_hidden_size,s_repr_size,s_output_size)
 
-    wordEnc.load_state_dict(torch.load('wordEncoder_model.pt'))
-    sentEnc.load_state_dict(torch.load('sentEncoder_model.pt'))
+    wordEnc.load_state_dict(torch.load('wordEncoder_model-pre_embed.pt'))
+    sentEnc.load_state_dict(torch.load('sentEncoder_model-pre_embed.pt'))
 
-    print(inference(wordEnc,sentEnc,validation_dataset,128))
+    print(inference(wordEnc,sentEnc,test_dataset,128))
