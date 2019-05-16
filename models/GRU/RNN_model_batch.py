@@ -1,4 +1,7 @@
 # a batch implementation of basic RNN model
+# vocab is filtered based on the frequency of words... only use words with frequency at least 5 ... replace others with unk token
+# pre-trained embeddings not used...
+# embeddings learnt on the go...
 
 from torch.utils import data
 from torch.nn.utils import rnn
@@ -12,10 +15,6 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import preprocess as pp
 import numpy as np
-
-from nltk.corpus import stopwords
-from nltk.tokenize import word_tokenize
-from nltk.stem import PorterStemmer
 
 import pickle
 
@@ -95,7 +94,7 @@ def sortbylength(X,y,s_lengths):
     return X[torch.LongTensor(indices),:],y[torch.LongTensor(indices)],sorted_lengths
 
 
-def train(encoder, dataset_train, dataset_validate, batch_size, epochs=15, learning_rate=0.001):
+def train(encoder, dataset_train, dataset_validate, batch_size, epochs=10, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss() # cross entropy loss in pytorch combines logsoftmax and negativeloglikelihoodloss...softmax layer not needed
     validation_accuracy = 0
@@ -180,6 +179,7 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
              label = line[0]
              review = line[2:]
              words = word_tokenize(review.strip())
+             words = [w for w in words if w.isalpha()]
              if len(words)>0:
                 reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))
                 if len(words)>sent_length:
@@ -195,20 +195,10 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
 
 
 if __name__=='__main__':
+
     sent_length = 100
-    train_file,validation_file = '../Data/train_s.csv','../Data/test_s.csv'
-    #w2i = pp.obtainW2i(sent_length,train = train_file,validate = validation_file,test=test_file)
-    #w2i = pp.word2index(train = '../Data/train.csv_filtered',validation = '../Data/validation.csv_filtered',test='../Data/test.csv_filtered')
-    #print('Loaded vocabulary')
-    #w2i['<PAD>'] = 0
-
-    #vocab_size = len(w2i)
-
-    
-    #with open('word2index','wb') as ft:
-    #    pickle.dump(w2i,ft)
-
-    with open('word2index','rb') as fs:
+    train_file,validation_file = '../../../amazonUser/User_level_train.csv','../../../amazonUser/User_level_validation.csv'
+    with open('../HAN/word2index.pickle','rb') as fs:
         w2i = pickle.load(fs)
 
     print('loaded vocabulary')

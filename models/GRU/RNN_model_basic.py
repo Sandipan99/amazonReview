@@ -1,8 +1,4 @@
-# simple one layer RNN model....
-
-# use preprocess.py for pre-processing tasks..
-
-# improve on this
+# Do not use this code... use RNN model batch instead....
 
 import torch
 import torch.nn as nn
