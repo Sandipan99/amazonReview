@@ -94,6 +94,29 @@ def sortbylength(X,y,s_lengths):
     return X[torch.LongTensor(indices),:],y[torch.LongTensor(indices)],sorted_lengths
 
 
+def ValidationAccuracy(encoder,dataset_validate,batch_size):
+
+    loader_validate = data.DataLoader(dataset_validate,batch_size=batch_size)
+    true_labels = []
+    predicted_labels = []
+    
+    with torch.no_grad():
+        for X,y,X_lengths in loader_validate:
+            X,y,X_lengths = sortbylength(X,y,X_lengths)
+            X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
+            b_size = y.size(0)
+            output = encoder(X,X_lengths,b_size)
+            output = F.softmax(output,dim=1)
+            value,labels = torch.max(output,1)
+
+            true_labels+=y.cpu().numpy()
+            predicted_labels+=labels.cpu().numpy()
+    
+    print(confusion_matrix(true_labels, predicted_labels))
+    return accuracy_score(true_labels, predicted_labels)
+
+
+
 def train(encoder, dataset_train, dataset_validate, batch_size, epochs=10, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss() # cross entropy loss in pytorch combines logsoftmax and negativeloglikelihoodloss...softmax layer not needed
@@ -122,38 +145,12 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=10, learn
         print("------------------------")
 
 
-        loader_validate = data.DataLoader(dataset_validate,batch_size=batch_size)
-        accuracy = []
-        for X,y,X_lengths in loader_validate:
-            X,y,X_lengths = sortbylength(X,y,X_lengths)
-            X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
-            b_size = y.size(0)
-            output = encoder(X,X_lengths,b_size)
-            output = F.softmax(output,dim=1)
-            value,labels = torch.max(output,1)
-
-            accuracy.append(accuracy_score(y.cpu().numpy(),labels.cpu().numpy()))
-
-        mean_accuracy = np.mean(accuracy)
-        print('accuracy: {} at epoch: {}'.format(mean_accuracy,i))
-        if validation_accuracy < mean_accuracy:
-            validation_accuracy = mean_accuracy
-            print('accuracy: ',mean_accuracy)
+        accuracy = ValidationAccuracy(encoder,dataset_validate,batch_size)
+        print('accuracy: {} at epoch: {}'.format(accuracy,i))
+        if validation_accuracy < accuracy:
+            validation_accuracy = accuracy
+            print('accuracy: ',accuracy)
             torch.save(encoder.state_dict(), 'encoder_model_2.pt')
-    
-
-def inference(encoder,dataset_test,batch_size):
-    loader = data.DataLoader(dataset_test,batch_size=batch_size)
-    for X,y,X_lengths in loader_validate:
-        X,y,X_lengths = sortbylength(X,y,X_lengths)
-        X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
-        b_size = y.size(0)
-        output = encoder(X,X_lengths,b_size)
-        output = F.softmax(output,dim=1)
-        value,labels = torch.max(output,1)
-
-        return accuracy_score(y.cpu().numpy(),labels.cpu().numpy()),y.cpu().numpy(),labels.cpu().numpy()
-
 
 
 
