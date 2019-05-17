@@ -5,7 +5,7 @@
 
 from torch.utils import data
 from torch.nn.utils import rnn
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix
 
 import string
 import torch
@@ -16,9 +16,10 @@ from torch.autograd import Variable
 import preprocess as pp
 import numpy as np
 
+from nltk import word_tokenize
 import pickle
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 class Dataset(data.Dataset):
     def __init__(self, reviews, labels, lengths):
@@ -109,8 +110,8 @@ def ValidationAccuracy(encoder,dataset_validate,batch_size):
             output = F.softmax(output,dim=1)
             value,labels = torch.max(output,1)
 
-            true_labels+=y.cpu().numpy()
-            predicted_labels+=labels.cpu().numpy()
+            true_labels+=y.cpu().numpy().tolist()
+            predicted_labels+=labels.cpu().numpy().tolist()
     
     print(confusion_matrix(true_labels, predicted_labels))
     return accuracy_score(true_labels, predicted_labels)
@@ -132,24 +133,16 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=10, learn
             output = encoder(X,X_lengths,b_size)
             loss = criterion(output,y)
             if batch_cnt%100==0:
-                print('epochs: ',i)
-                print('batch_cnt: ',batch_cnt)
-                print('Loss: ',loss)
+                print('epoch - {}, batch count - {}, loss - {}'.format(i, batch_cnt, loss))
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
-
-        print("training complete for epoch: ",i)
-        print("Loss after epoch: ",loss)
-        print("------------------------")
 
 
         accuracy = ValidationAccuracy(encoder,dataset_validate,batch_size)
         print('accuracy: {} at epoch: {}'.format(accuracy,i))
         if validation_accuracy < accuracy:
             validation_accuracy = accuracy
-            print('accuracy: ',accuracy)
             torch.save(encoder.state_dict(), 'encoder_model_2.pt')
 
 
@@ -186,7 +179,7 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
                 labels.append(int(label))
                 if count%100000==0:
                     print('Encoded reviews: ',count)
-
+            
 
     return reviews,labels,lengths
 
@@ -207,13 +200,10 @@ if __name__=='__main__':
     reviews_train,labels_train,lengths_train = encodeDataset(train_file,w2i,padding_idx,sent_length)
     reviews_validate, labels_validate, lengths_validate = encodeDataset(validation_file,w2i,padding_idx,sent_length)
     #reviews_test, labels_test, lengths_test = encodeDataset(test_file,w2i,padding_idx,sent_length)
-
-
     print('created batches from data loader')
 
 
     #print(reviews[2])
-    w2i = {}
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
     encoding_size = 50

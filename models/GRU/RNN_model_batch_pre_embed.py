@@ -21,7 +21,7 @@ from models.GRU.RNN_model_batch import Dataset
 import pickle
 import gensim
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
 
 class Encoder(nn.Module):
