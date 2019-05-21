@@ -100,6 +100,8 @@ if __name__ == '__main__':
     #with open('word2index.pickle','wb') as ft:
     #    pickle.dump(w2i,ft)
 
+    filterByFrequency(w2i,train_file='../../../amazonUser/User_level_train.csv', validation_file='../../../amazonUser/User_level_validation.csv')
+
     with open('word2index.pickle','rb') as fs:
         w2i = pickle.load(fs)
     print('word2index dictionary loaded')    
