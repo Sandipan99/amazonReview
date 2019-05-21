@@ -60,6 +60,8 @@ class Encoder(nn.Module):
         self.embedding = nn.Embedding(input_size, encoding_size, padding_idx=padding_idx)
         self.e2i = nn.Linear(encoding_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True, num_layers=self.layers)
+        self.dense1 = nn.Linear(hidden_size,hidden_size)
+        self.dense2 = nn.Linear(hidden_size,hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
         self.sigmoid = nn.Sigmoid()
         self.batch_first = True
@@ -81,6 +83,8 @@ class Encoder(nn.Module):
         idx = idx.unsqueeze(time_dimension)
         X = X.gather(time_dimension, Variable(idx)).squeeze(time_dimension)
 
+        X = self.dense1(X)
+        X = self.dense2(X)
         X = self.out(X)
         X = self.sigmoid(X)
 
@@ -118,7 +122,7 @@ def ValidationAccuracy(encoder,dataset_validate,batch_size):
 
 
 
-def train(encoder, dataset_train, dataset_validate, batch_size, epochs=10, learning_rate=0.001):
+def train(encoder, dataset_train, dataset_validate, batch_size, saveas = '', epochs=10, learning_rate=0.001):
     optimizer = optim.Adam(encoder.parameters(), lr=learning_rate)
     criterion = nn.CrossEntropyLoss() # cross entropy loss in pytorch combines logsoftmax and negativeloglikelihoodloss...softmax layer not needed
     validation_accuracy = 0
@@ -143,7 +147,7 @@ def train(encoder, dataset_train, dataset_validate, batch_size, epochs=10, learn
         print('accuracy: {} at epoch: {}'.format(accuracy,i))
         if validation_accuracy < accuracy:
             validation_accuracy = accuracy
-            torch.save(encoder.state_dict(), 'encoder_model_2.pt')
+            torch.save(encoder.state_dict(), saveas)
 
 
 
@@ -179,7 +183,6 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
                 labels.append(int(label))
                 if count%100000==0:
                     print('Encoded reviews: ',count)
-            
 
     return reviews,labels,lengths
 
@@ -215,6 +218,6 @@ if __name__=='__main__':
     batch_size = 256
     encoder = Encoder(input_size, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
-    train(encoder,dataset_train, dataset_validate, batch_size)
+    train(encoder,dataset_train, dataset_validate, batch_size, saveas='RNN_vanilla_2.pt')
     
 

@@ -37,6 +37,8 @@ class Encoder(nn.Module):
 
         self.e2i = nn.Linear(encoding_size, hidden_size)
         self.gru = nn.GRU(hidden_size, hidden_size, batch_first=True, num_layers=self.layers)
+        self.dense1 = nn.Linear(hidden_size,hidden_size)
+        self.dense2 = nn.Linear(hidden_size,hidden_size)
         self.out = nn.Linear(hidden_size, output_size)
         self.sigmoid = nn.Sigmoid()
         self.batch_first = True
@@ -57,6 +59,9 @@ class Encoder(nn.Module):
         time_dimension = 1 if self.batch_first else 0
         idx = idx.unsqueeze(time_dimension)
         X = X.gather(time_dimension, Variable(idx)).squeeze(time_dimension)
+
+        X = self.dense1(X)
+        X = self.dense2(X)
 
         X = self.out(X)
         X = self.sigmoid(X)
@@ -91,8 +96,9 @@ if __name__=='__main__':
 
     input_size,encoding_size = model.wv.vectors.shape
 
-    matrix =hp.createEmbeddingMatrix(model,w2i,w_encoding_size)
+    matrix =hp.createEmbeddingMatrix(model,w2i,encoding_size)
 
+    input_size, encoding_size = model.wv.vectors.shape
     #print(reviews[2])
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
@@ -103,6 +109,6 @@ if __name__=='__main__':
     batch_size = 256
     encoder = Encoder(matrix, input_size+1, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
-    rm.train(encoder,dataset_train, dataset_validate, batch_size)
+    rm.train(encoder,dataset_train, dataset_validate, batch_size,saveas='RNN_pretrain.pt')
 
 
