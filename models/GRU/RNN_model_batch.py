@@ -190,8 +190,8 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
 if __name__=='__main__':
 
     sent_length = 100
-    train_file,validation_file = '../../../amazonUser/User_level_train.csv','../../../amazonUser/User_level_validation.csv'
-    with open('../HAN/word2index.pickle','rb') as fs:
+    train_file,validation_file = '/home/rachneet/datasets/reddit/train_reddit.csv','/home/rachneet/datasets/reddit/validation_reddit.csv'
+    with open('word2index.pickle','rb') as fs:
         w2i = pickle.load(fs)
 
     print('loaded vocabulary')
@@ -212,12 +212,11 @@ if __name__=='__main__':
     encoding_size = 50
 
     hidden_size = 250
-    input_size = vocab_size
+    input_size = vocab_size+1
     output_size = 2
     layers = 2
     batch_size = 256
     encoder = Encoder(input_size, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
     train(encoder,dataset_train, dataset_validate, batch_size, saveas='RNN_vanilla_2.pt')
-    
 
