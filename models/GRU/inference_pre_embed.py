@@ -35,6 +35,7 @@ def inference(encoder,dataset_test,batch_size):
             reviewer_id+=ids_
 
     with open('inference_preembed_result.csv','w') as ft:
+        ft.write('True_label,Predicted_label,ReviewerID\n')
         for t_l,p_l,rev_id in zip(true_labels,predicted_labels,reviewer_id):
             ft.write(str(t_l)+','+str(p_l)+','+rev_id)
             ft.write('\n')
