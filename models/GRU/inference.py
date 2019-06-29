@@ -119,18 +119,16 @@ test_file = '../../../amazonUser/User_level_test_with_id.csv'
 vocab_size = len(w2i)
 padding_idx = 0
 
-reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
-
 hidden_size = 250
 input_size = vocab_size
 output_size = 2
 layers = 2
 batch_size = 256
-encoding_size = 50
-encoder = Encoder(input_size,encoding_size, hidden_size, output_size,layers, padding_idx)
+encoding_size = 200
+encoder = Encoder(input_size+1,encoding_size, hidden_size, output_size,layers, padding_idx)
 encoder.load_state_dict(torch.load('models_amazon/RNN_vanilla_2.pt'))
 encoder = encoder.to(device)
-
+reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
 print('model loaded')
 
 dataset_test = DatasetInfer(reviews_test,labels_test,lengths_test,ids_test)

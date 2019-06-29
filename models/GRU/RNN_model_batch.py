@@ -177,8 +177,8 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
 if __name__=='__main__':
 
     sent_length = 100
-    train_file,validation_file = '/home/rachneet/datasets/reddit/train_reddit.csv','/home/rachneet/datasets/reddit/validation_reddit.csv'
-    with open('word2index.pickle','rb') as fs:
+    train_file,validation_file = '../../../amazonUser/User_level_train.csv','../../../amazonUser/User_level_validation.csv'
+    with open('../HAN/word2index.pickle','rb') as fs:
         w2i = pickle.load(fs)
 
     print('loaded vocabulary')
@@ -196,7 +196,7 @@ if __name__=='__main__':
     #print(reviews[2])
     dataset_train = Dataset(reviews_train,labels_train,lengths_train)
     dataset_validate = Dataset(reviews_validate,labels_validate,lengths_validate)
-    encoding_size = 50
+    encoding_size = 200
 
     hidden_size = 250
     input_size = vocab_size+1
