@@ -36,19 +36,6 @@ class Dataset(data.Dataset):
         s_lengths = self.lengths[index]
         return X,y,s_lengths
 
-class DataInference(data.Dataset):
-    def __init__(self, reviews, lengths):
-        self.reviews = reviews
-        self.lengths = lengths
-
-    def __len__(self):
-        return len(self.reviews)
-
-    def __getitem__(self,index):
-        X = torch.tensor(self.reviews[index],dtype=torch.long)
-        s_lengths = self.lengths[index]
-        return X,s_lengths
-
 
 class Encoder(nn.Module):
     def __init__(self, input_size, encoding_size, hidden_size, output_size, layers, padding_idx):
