@@ -7,11 +7,12 @@ import torch.nn as nn
 from torch import optim
 import torch.nn.functional as F
 from torch.autograd import Variable
-import preprocess as pp
 import numpy as np
 
-from RNN_model_batch import Encoder,Dataset
+from models.GRU.RNN_model_batch import Encoder
+from models.HAN import preprocess as pp
 import pickle
+import os
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
@@ -102,7 +103,7 @@ def inference(encoder,dataset_test,batch_size):
             predicted_labels+=labels.cpu().numpy().tolist()
             reviewer_id+=ids_
 
-    with open('inference_result.csv','w') as ft:
+    with open('inference_result_RNN_vanilla_2.csv','w') as ft:
         ft.write('True_label,Predicted_label,ReviewerID\n')
         for t_l,p_l,rev_id in zip(true_labels,predicted_labels,reviewer_id):
             ft.write(str(t_l)+','+str(p_l)+','+rev_id)
@@ -119,6 +120,13 @@ test_file = '../../../amazonUser/User_level_test_with_id.csv'
 vocab_size = len(w2i)
 padding_idx = 0
 
+if os.path.exits(test_file+'_filtered'):
+    print('filtered file already exists... skipping creation of filtered file')
+else:
+    print('filtered file not found... creating filtered file')
+    pp.filterByFrequencyIDs(w2i,test_file=test_file)
+
+
 hidden_size = 250
 input_size = vocab_size
 output_size = 2
@@ -126,10 +134,12 @@ layers = 2
 batch_size = 256
 encoding_size = 200
 encoder = Encoder(input_size+1,encoding_size, hidden_size, output_size,layers, padding_idx)
-encoder.load_state_dict(torch.load('models_amazon/RNN_vanilla_2.pt'))
+encoder.load_state_dict(torch.load('RNN_vanilla_2.pt'))
 encoder = encoder.to(device)
-reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
+
 print('model loaded')
+
+reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
 
 dataset_test = DatasetInfer(reviews_test,labels_test,lengths_test,ids_test)
 inference(encoder,dataset_test,batch_size)

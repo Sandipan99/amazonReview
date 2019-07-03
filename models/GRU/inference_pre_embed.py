@@ -6,8 +6,10 @@ import numpy as np
 from models.GRU.RNN_model_batch_pre_embed import Encoder
 from models.GRU.inference import DatasetInfer,encodeDatasetIds
 from models.HAN import HierarchicalAttentionNet_pre_embed as hp
+from models.HAN import preprocess as pp 
 import pickle
 import gensim
+import os
 
 device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
@@ -51,7 +53,12 @@ test_file = '../../../amazonUser/User_level_test_with_id.csv'
 vocab_size = len(w2i)
 padding_idx = 0
 
-reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
+
+if os.path.exits(test_file+'_filtered'):
+    print('filtered file already exists... skipping creation of filtered file')
+else:
+    print('filtered file not found... creating filtered file')
+    pp.filterByFrequencyIDs(w2i,test_file=test_file)
 
 
 model = gensim.models.Word2Vec.load('../Embeddings/amazonWord2Vec')
@@ -72,6 +79,8 @@ encoder.load_state_dict(torch.load('models_amazon/RNN_pretrain.pt'))
 encoder = encoder.to(device)
 
 print('model loaded')
+
+reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
 
 dataset_test = DatasetInfer(reviews_test,labels_test,lengths_test,ids_test)
 inference(encoder,dataset_test,batch_size)
