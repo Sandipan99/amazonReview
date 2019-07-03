@@ -118,6 +118,15 @@ if __name__=='__main__':
 
     print('Loaded vocabulary - ',len(w2i))
 
+    if os.path.exits(test_file+'_filtered'):
+        print('filtered file already exists... skipping creation of filtered file')
+    else:
+        print('filtered file not found... creating filtered file')
+        pp.filterByFrequencyIDs(w2i,test_file=test_file)
+
+
+
+
     test_dataset = creatingDatasetIDs('../../../amazonUser/User_level_test_with_id.csv',w2i)
 
     print('Dataset creation complete')
