@@ -4,7 +4,7 @@ import torch.nn as nn
 import numpy as np
 
 from models.GRU.RNN_model_batch_pre_embed import Encoder
-from models.GRU.inference import DatasetInfer,encodeDatasetIds
+from models.GRU.inference import DatasetInfer,encodeDatasetIDs
 from models.HAN import HierarchicalAttentionNet_pre_embed as hp
 from models.HAN import preprocess as pp 
 import pickle
@@ -54,7 +54,7 @@ vocab_size = len(w2i)
 padding_idx = 0
 
 
-if os.path.exits(test_file+'_filtered'):
+if os.path.exists(test_file+'_filtered'):
     print('filtered file already exists... skipping creation of filtered file')
 else:
     print('filtered file not found... creating filtered file')

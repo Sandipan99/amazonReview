@@ -109,37 +109,38 @@ def inference(encoder,dataset_test,batch_size):
             ft.write(str(t_l)+','+str(p_l)+','+rev_id)
             ft.write('\n')
 
+if __name__=='__main__':
 
-with open('../HAN/word2index.pickle','rb') as fs:
-        w2i = pickle.load(fs)
+    with open('../HAN/word2index.pickle','rb') as fs:
+            w2i = pickle.load(fs)
 
-print('loaded vocabulary')
-print('size of vocabulary: ',len(w2i))
-sent_length = 100
-test_file = '../../../amazonUser/User_level_test_with_id.csv'
-vocab_size = len(w2i)
-padding_idx = 0
+    print('loaded vocabulary')
+    print('size of vocabulary: ',len(w2i))
+    sent_length = 100
+    test_file = '../../../amazonUser/User_level_test_with_id.csv'
+    vocab_size = len(w2i)
+    padding_idx = 0
 
-if os.path.exits(test_file+'_filtered'):
-    print('filtered file already exists... skipping creation of filtered file')
-else:
-    print('filtered file not found... creating filtered file')
-    pp.filterByFrequencyIDs(w2i,test_file=test_file)
+    if os.path.exists(test_file+'_filtered'):
+        print('filtered file already exists... skipping creation of filtered file')
+    else:
+        print('filtered file not found... creating filtered file')
+        pp.filterByFrequencyIDs(w2i,test_file=test_file)
 
 
-hidden_size = 250
-input_size = vocab_size
-output_size = 2
-layers = 2
-batch_size = 256
-encoding_size = 200
-encoder = Encoder(input_size+1,encoding_size, hidden_size, output_size,layers, padding_idx)
-encoder.load_state_dict(torch.load('RNN_vanilla_2.pt'))
-encoder = encoder.to(device)
+    hidden_size = 250
+    input_size = vocab_size
+    output_size = 2
+    layers = 2
+    batch_size = 256
+    encoding_size = 200
+    encoder = Encoder(input_size+1,encoding_size, hidden_size, output_size,layers, padding_idx)
+    encoder.load_state_dict(torch.load('RNN_vanilla_2.pt'))
+    encoder = encoder.to(device)
 
-print('model loaded')
+    print('model loaded')
 
-reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
+    reviews_test, labels_test, lengths_test, ids_test = encodeDatasetIDs(test_file,w2i,padding_idx,sent_length)
 
-dataset_test = DatasetInfer(reviews_test,labels_test,lengths_test,ids_test)
-inference(encoder,dataset_test,batch_size)
+    dataset_test = DatasetInfer(reviews_test,labels_test,lengths_test,ids_test)
+    inference(encoder,dataset_test,batch_size)

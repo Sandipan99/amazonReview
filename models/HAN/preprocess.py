@@ -95,21 +95,15 @@ def filterByFrequencyIDs(w2i,**kwargs): # same function as filterByFrequency but
 
 if __name__ == '__main__':
 
-    #w2i,count = obtainKFrequentWords(k=5,train_file='/home/rachneet/datasets/reddit/train_reddit.csv', validation_file='/home/rachneet/datasets/reddit/validation_reddit.csv')
-    #print('vocabulary size - ',len(w2i))
+    w2i,count = obtainKFrequentWords(k=5,train_file='/home/rachneet/datasets/reddit/train_reddit.csv', validation_file='/home/rachneet/datasets/reddit/validation_reddit.csv')
+    print('vocabulary size - ',len(w2i))
  
-    #print(len(w2i),count)
+    print(len(w2i),count)
 
-    #filterByFrequency(w2i,train_file='/home/rachneet/datasets/reddit/train_reddit.csv', validation_file='/home/rachneet/datasets/reddit/validation_reddit.csv')
+    filterByFrequency(w2i,train_file='/home/rachneet/datasets/reddit/train_reddit.csv', validation_file='/home/rachneet/datasets/reddit/validation_reddit.csv')
 
-    #w2i['<unk>'] = count
+    w2i['<unk>'] = count
     
-    #with open('word2index.pickle','wb') as ft:
-    #    pickle.dump(w2i,ft)
-    
-    with open('word2index.pickle','rb') as fs:
-        w2i = pickle.load(fs)
-    print('word2index dictionary loaded')    
-    filterByFrequencyIDs(w2i,test_file='../../../amazonUser/User_level_test_with_id.csv')   
-
-
+    with open('word2index.pickle','wb') as ft:
+       pickle.dump(w2i,ft)
+ 
