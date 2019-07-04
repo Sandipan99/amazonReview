@@ -3,8 +3,10 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+import torch.nn.functional as F
+
 from models.GRU.RNN_model_batch_pre_embed import Encoder
-from models.GRU.inference import DatasetInfer,encodeDatasetIDs
+from models.GRU.inference import DatasetInfer,encodeDatasetIDs,sortbylengthIDs
 from models.HAN import HierarchicalAttentionNet_pre_embed as hp
 from models.HAN import preprocess as pp 
 import pickle
