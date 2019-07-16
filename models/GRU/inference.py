@@ -58,7 +58,7 @@ def encodeDatasetIDs(fname,w2i,padding_idx,sent_length):
              ind = line.find(',')
              id_ = line[:ind]
              review = line[ind+1:-2]
-             words = word_tokenize(review)
+             words = review.split()
              words = [w for w in words if w.isalpha()]
              if len(words)>0:
                 reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))

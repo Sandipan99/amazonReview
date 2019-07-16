@@ -159,7 +159,7 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
              count+=1
              label = line[0]
              review = line[2:]
-             words = word_tokenize(review.strip())
+             words = review.strip().replace('.','').split()
              words = [w for w in words if w.isalpha()]
              if len(words)>0:
                 reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))
