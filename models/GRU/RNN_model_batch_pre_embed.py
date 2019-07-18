@@ -109,6 +109,6 @@ if __name__=='__main__':
     batch_size = 256
     encoder = Encoder(matrix, input_size+1, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
-    rm.train(encoder,dataset_train, dataset_validate, batch_size,saveas='RNN_pretrain.pt')
+    rm.train(encoder,dataset_train, dataset_validate, batch_size,saveas='models_amazon/RNN_pretrain.pt')
 
 

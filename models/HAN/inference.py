@@ -58,7 +58,7 @@ def inference(wordEnc,sentEnc,validation_dataset,batch_size):
     data = createBatches(validation_dataset,batch_size)
 
     ft = open('output_han_amazon.csv','w')
-    ft.write('TrueLabel,PredictedLabel,ReviewerId')
+    ft.write('True_label,Predicted_label,ReviewerID')
     ft.write('\n')
 
     with torch.no_grad():

@@ -159,7 +159,8 @@ def encodeDataset(fname,w2i,padding_idx,sent_length):
              count+=1
              label = line[0]
              review = line[2:]
-             words = review.strip().replace('.','').split()
+             #words = review.strip().replace('.','').split()
+             words = word_tokenize(review.strip())
              words = [w for w in words if w.isalpha()]
              if len(words)>0:
                 reviews.append(sentence2tensor(words,w2i,padding_idx,sent_length))
@@ -205,5 +206,5 @@ if __name__=='__main__':
     batch_size = 256
     encoder = Encoder(input_size, encoding_size, hidden_size, output_size,layers, padding_idx)
     encoder = encoder.to(device)
-    train(encoder,dataset_train, dataset_validate, batch_size, saveas='RNN_vanilla_2.pt')
+    train(encoder,dataset_train, dataset_validate, batch_size, saveas='models_amazon/RNN_vanilla_2.pt')
 
