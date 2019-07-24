@@ -74,7 +74,7 @@ def filterByFrequency(w2i,**kwargs): # filter the reviews with only words with f
                 for line in fs:
                     label = line[0]
                     rev_or = line[2:]
-                    rev_fil = '.'.join([' '.join([w if w in w2i else '<unk>' for w in word_tokenize(sent) if w.isalpha()]) for sent in sent_tokenize(rev_or.lower())])
+                    rev_fil = '.'.join([' '.join([w if w in w2i else 'oovb' for w in word_tokenize(sent) if w.isalpha()]) for sent in sent_tokenize(rev_or.lower())])
                     ft.write(label+','+rev_fil)
                     ft.write('\n')
 
@@ -89,7 +89,7 @@ def filterByFrequencyIDs(w2i,**kwargs): # same function as filterByFrequency but
                     id_ = line[:x]
                     label = line[-1]
                     rev_or = line[x+1:-2]
-                    rev_fil = '.'.join([' '.join([w if w in w2i else '<unk>' for w in word_tokenize(sent) if w.isalpha()]) for sent in sent_tokenize(rev_or.lower())])
+                    rev_fil = '.'.join([' '.join([w if w in w2i else 'oovb' for w in word_tokenize(sent) if w.isalpha()]) for sent in sent_tokenize(rev_or.lower())])
                     ft.write(id_+','+rev_fil+','+label)
                     ft.write('\n')
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
 
     filterByFrequency(w2i,train_file='/home/rachneet/datasets/reddit/train_reddit.csv', validation_file='/home/rachneet/datasets/reddit/validation_reddit.csv')
 
-    w2i['<unk>'] = count
+    w2i['oovb'] = count
     
     with open('word2index.pickle','wb') as ft:
        pickle.dump(w2i,ft)

@@ -92,17 +92,17 @@ def ValidationAccuracy(encoder,dataset_validate,batch_size):
     true_labels = []
     predicted_labels = []
     
-    with torch.no_grad():
-        for X,y,X_lengths in loader_validate:
-            X,y,X_lengths = sortbylength(X,y,X_lengths)
-            X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
-            b_size = y.size(0)
-            output = encoder(X,X_lengths,b_size)
-            output = F.softmax(output,dim=1)
-            value,labels = torch.max(output,1)
+    #with torch.no_grad():
+    for X,y,X_lengths in loader_validate:
+        X,y,X_lengths = sortbylength(X,y,X_lengths)
+        X,y,X_lengths = X.to(device),y.to(device),X_lengths.to(device)
+        b_size = y.size(0)
+        output = encoder(X,X_lengths,b_size)
+        output = F.softmax(output,dim=1)
+        value,labels = torch.max(output,1)
 
-            true_labels+=y.cpu().numpy().tolist()
-            predicted_labels+=labels.cpu().numpy().tolist()
+        true_labels+=y.cpu().numpy().tolist()
+        predicted_labels+=labels.cpu().numpy().tolist()
     
     print(confusion_matrix(true_labels, predicted_labels))
     return accuracy_score(true_labels, predicted_labels)
